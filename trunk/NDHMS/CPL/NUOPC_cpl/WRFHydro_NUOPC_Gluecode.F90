@@ -1,8 +1,6 @@
-#define ESMF_STDERRORCHECK(rc) ESMF_LogFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)
-#define FILENAME "wrfhydro_nuopc_gluecode"
-#define MODNAME "wrfhydro_nuopc_gluecode"
-
-#define UNINITIALIZED -9999
+#define FILENAME "WRFHydro_NUOPC_Gluecode"
+#define MODNAME "WRFHydro_NUOPC_Gluecode.F90"
+#include "WRFHydro_NUOPC_Macros.h"
 
 module wrfhydro_nuopc_gluecode
 ! !MODULE: wrfhydro_nuopc_gluecode
@@ -51,9 +49,9 @@ module wrfhydro_nuopc_gluecode
 !    config_flags
 !  use module_configure, only: &
 !    model_config_rec
-  use NUOPC_LogUtility
-  use NUOPC_FileReadUtility
-  use NUOPC_CopyUtility
+  use beta_NUOPC_Log
+  use beta_NUOPC_FileRead
+  use beta_NUOPC_Copy
 
   implicit none
 
@@ -64,6 +62,7 @@ module wrfhydro_nuopc_gluecode
   public :: wrfhydro_nuopc_fin
   public :: WRFHYDRO_GridCreate
   public :: WRFHYDRO_get_timestep
+  public :: WRFHYDRO_get_hgrid
   public :: WRFHYDRO_RunModeGet
   public :: WRFHYDRO_Unknown
   public :: WRFHYDRO_Offline
@@ -72,7 +71,6 @@ module wrfhydro_nuopc_gluecode
   public :: WRFHYDRO_Field
   public :: WRFHYDRO_FieldList
   public :: WRFHYDRO_FieldDictionaryAdd
-  public :: WRFHYDRO_FieldListLog
 
   INTEGER, PARAMETER :: WRFHYDRO_Unknown = -1
   INTEGER, PARAMETER :: WRFHYDRO_Offline =  0
@@ -80,143 +78,144 @@ module wrfhydro_nuopc_gluecode
   INTEGER, PARAMETER :: WRFHYDRO_Hybrid  =  2
 
   type WRFHYDRO_Field
-    character(len=64)   :: stdname = " "
-    character(len=10)   :: units = " "
-    character(len=64)   :: transferOffer = " "
-    logical             :: forcing = .FALSE.
-    logical             :: import = .FALSE.
-    logical             :: export = .FALSE.
-    logical             :: assoc = .FALSE. ! is the farrayPtr associated with internal data
+    character(len=64)   :: stdname        = ' '
+    character(len=10)   :: units          = ' '
+    character(len=64)   :: transferOffer  = 'will provide'
+    logical             :: adImport       = .FALSE.
+    logical             :: realizedImport = .FALSE.
+    logical             :: adExport       = .FALSE.
+    logical             :: realizedExport = .FALSE.
+    logical             :: assoc          = .FALSE. 
     real(ESMF_KIND_R8), dimension(:,:,:), pointer :: farrayPtr => null()
   endtype WRFHYDRO_Field
 
   type(WRFHYDRO_Field),dimension(42) :: WRFHYDRO_FieldList = (/ &
-    WRFHYDRO_Field(stdname='aerodynamic_roughness_length', &               ! (01)
-      units='m',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='canopy_moisture_storage', &                    ! (02)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='carbon_dioxide', &                             ! (03)
-      units='mol?',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='cosine_zenith_angle', &                        ! (04)
-      units='?',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='exchange_coefficient_heat', &                  ! (05)
-      units='?',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='exchange_coefficient_heat_height2m', &         ! (06)
-      units='?',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='exchange_coefficient_moisture_height2m', &     ! (07)
-      units='?',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='ice_mask', &                                   ! (08)
-      units='1',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_down_lw_flx', &                           ! (09)
-      units='W m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_down_sw_flx', &                           ! (10)
-      units='W m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_height_lowest', &                         ! (11)
-      units='m',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_merid_wind_height_lowest', &              ! (12)
-      units='m s-1',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_pres_height_lowest', &                    ! (13)
-      units='Pa',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_pres_height_surface', &                   ! (14)
-      units='Pa',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_spec_humid_height_lowest', &              ! (15)
-      units='kg kg-1',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_temp_height_lowest', &                    ! (16)
-      units='K',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_temp_height_surface', &                   ! (17)
-      units='K',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_wind_speed_height_lowest', &              ! (18)
-      units='m s-1',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='inst_zonal_wind_height_lowest', &              ! (19)
-      units='m s-1',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='liquid_water_content_of_soil_layer_1', &       ! (20)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='liquid_water_content_of_soil_layer_2', &       ! (21)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='liquid_water_content_of_soil_layer_3', &       ! (22)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='liquid_water_content_of_soil_layer_4', &       ! (23)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='mean_cprec_rate', &                            ! (24)
-      units='kg s-1 m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='mean_down_lw_flx', &                           ! (25)
-      units='W m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='mean_down_sw_flx', &                           ! (26)
-      units='W m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='mean_fprec_rate', &                            ! (27)
-      units='kg s-1 m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='mean_prec_rate', &                             ! (28)
-      units='kg s-1 m-2',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='mean_surface_albedo', &                        ! (29)
-      units='lm lm-1',transferOffer='will provide', &
-      forcing=.FALSE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='moisture_content_of_soil_layer_1', &           ! (30)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='moisture_content_of_soil_layer_2', &           ! (31)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='moisture_content_of_soil_layer_3', &           ! (32)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='moisture_content_of_soil_layer_4', &           ! (33)
-      units='kg m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.FALSE.), &
-    WRFHYDRO_Field(stdname='subsurface_runoff_flux', &                     ! (34)
-      units='kg s-1 m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='surface_runoff_flux', &                        ! (35)
-      units='kg s-1 m-2',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='surface_snow_thickness', &                     ! (36)
-      units='m',transferOffer='will provide', &
-      forcing=.FALSE.,import=.FALSE.,export=.TRUE.), & 
-    WRFHYDRO_Field(stdname='temperature_of_soil_layer_1', &                ! (37)
-      units='K',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='temperature_of_soil_layer_2', &                ! (38)
-      units='K',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='temperature_of_soil_layer_3', &                ! (39)
-      units='K',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='temperature_of_soil_layer_4', &                ! (40)
-      units='K',transferOffer='will provide', &
-      forcing=.TRUE.,import=.TRUE.,export=.TRUE.), &
-    WRFHYDRO_Field(stdname='volume_fraction_of_total_water_in_soil', &     ! (41)
-      units='m3 m-3',transferOffer='will provide', &
-      forcing=.FALSE.,import=.FALSE.,export=.TRUE.), & 
-    WRFHYDRO_Field(stdname='water_surface_height_above_reference_datum', & ! (42)
-      units='m',transferOffer='will provide', &
-      forcing=.FALSE.,import=.FALSE.,export=.TRUE.)/)
+    WRFHYDRO_Field( & !(01)
+      stdname='aerodynamic_roughness_length', units='m', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(02)
+      stdname='canopy_moisture_storage', units='kg m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(03)
+      stdname='carbon_dioxide', units='mol?', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(04)
+      stdname='cosine_zenith_angle', units='?', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(05)
+      stdname='exchange_coefficient_heat', units='?', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(06)
+      stdname='exchange_coefficient_heat_height2m', units='?', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(07)
+      stdname='exchange_coefficient_moisture_height2m', units='?', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(08)
+      stdname='ice_mask', units='1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(09)
+      stdname='inst_down_lw_flx', units='W m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(10)
+      stdname='inst_down_sw_flx', units='W m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(11)
+      stdname='inst_height_lowest', units='m', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(12)
+      stdname='inst_merid_wind_height_lowest', units='m s-1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(13)
+      stdname='inst_pres_height_lowest', units='Pa', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(14)
+      stdname='inst_pres_height_surface', units='Pa', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(15)
+      stdname='inst_spec_humid_height_lowest', units='kg kg-1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(16)
+      stdname='inst_temp_height_lowest', units='K', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(17)
+      stdname='inst_temp_height_surface', units='K', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(18)
+      stdname='inst_wind_speed_height_lowest', units='m s-1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(19)
+      stdname='inst_zonal_wind_height_lowest', units='m s-1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(20)
+      stdname='liquid_fraction_of_soil_moisture_layer_1', units='kg m-2', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(21)
+      stdname='liquid_fraction_of_soil_moisture_layer_2', units='kg m-2', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(22)
+      stdname='liquid_fraction_of_soil_moisture_layer_3', units='kg m-2', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(23)
+      stdname='liquid_fraction_of_soil_moisture_layer_4', units='kg m-2', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(24)
+      stdname='mean_cprec_rate', units='kg s-1 m-2', &
+      adImport=.FALSE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(25)
+      stdname='mean_down_lw_flx', units='W m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(26)
+      stdname='mean_down_sw_flx', units='W m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(27)
+      stdname='mean_fprec_rate', units='kg s-1 m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(28)
+      stdname='mean_prec_rate', units='kg s-1 m-2', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(29)
+      stdname='mean_surface_albedo', units='lm lm-1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(30)
+      stdname='soil_moisture_fraction_layer_1', units='kg m-2', &
+      adImport=.TRUE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(31)
+      stdname='soil_moisture_fraction_layer_2', units='kg m-2', &
+      adImport=.TRUE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(32)
+      stdname='soil_moisture_fraction_layer_3', units='kg m-2', &
+      adImport=.TRUE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(33)
+      stdname='soil_moisture_fraction_layer_4', units='kg m-2', &
+      adImport=.TRUE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(34)
+      stdname='subsurface_runoff_amount', units='kg s-1 m-2', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(35)
+      stdname='surface_runoff_amount', units='kg s-1 m-2', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(36)
+      stdname='surface_snow_thickness', units='m', &
+      adImport=.FALSE.,adExport=.TRUE.), & 
+    WRFHYDRO_Field( & !(37)
+      stdname='soil_temperature_layer_1', units='K', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(38)
+      stdname='soil_temperature_layer_2', units='K', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(39)
+      stdname='soil_temperature_layer_3', units='K', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(40)
+      stdname='soil_temperature_layer_4', units='K', &
+      adImport=.TRUE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(41)
+      stdname='volume_fraction_of_total_water_in_soil', units='m3 m-3', &
+      adImport=.FALSE.,adExport=.TRUE.), & 
+    WRFHYDRO_Field( & !(42)
+      stdname='water_surface_height_above_reference_datum', units='m', &
+      adImport=.FALSE.,adExport=.TRUE.)/)
 
   ! HRLDAS Configuration
   character(len=ESMF_MAXPATHLEN) :: hrldasConfigFile = "namelist.hrldas"
@@ -275,13 +274,17 @@ module wrfhydro_nuopc_gluecode
   !-----------------------------------------------------------------------------
 contains
 
-  subroutine wrfhydro_nuopc_ini(nest,vm,clock,rc)
-    integer, intent(in)                     :: nest
+#undef METHOD
+#define METHOD "wrfhydro_nuopc_ini"
+
+  subroutine wrfhydro_nuopc_ini(did,vm,clock,rc)
+    integer, intent(in)                     :: did
     type(ESMF_VM),intent(in)                :: vm
     type(ESMF_Clock),intent(in)             :: clock
     integer, intent(out)                    :: rc
 
     ! local variables
+    integer                     :: localPet
     integer                     :: stat
     type(ESMF_DistGridConnection), allocatable :: connectionList(:)
     integer                     :: ntime
@@ -289,12 +292,18 @@ contains
     type(ESMF_Time)             :: startTime
     type(ESMF_TimeInterval)     :: timeStep
     real(ESMF_KIND_R8)          :: dt
+    character(ESMF_MAXSTR)      :: logMsg
 
     rc = ESMF_SUCCESS
 
     ! Set mpiCommunicator for WRFHYDRO
-    call ESMF_VMGet(vm, mpiCommunicator=HYDRO_COMM_WORLD, rc=rc)
+    call ESMF_VMGet(vm, localPet=localPet, &
+      mpiCommunicator=HYDRO_COMM_WORLD, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (', localPet, ') entered ',METHOD
+#endif
 
     ! Read information from config file
     call config_file_read(rc)
@@ -323,16 +332,16 @@ contains
     enddo
 
     ! Set Model Soil Depths (Must be negative)
-    nlst_rt(nest)%nsoil = configFile%nsoil
-    call mpp_land_bcast_int1 (nlst_rt(nest)%nsoil)
-    allocate(nlst_rt(nest)%zsoil8(nlst_rt(nest)%nsoil),stat=stat)
+    nlst_rt(did)%nsoil = configFile%nsoil
+    call mpp_land_bcast_int1 (nlst_rt(did)%nsoil)
+    allocate(nlst_rt(did)%zsoil8(nlst_rt(did)%nsoil),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg='WRFHYDRO: Allocation of model soil depths memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     if(zs(1) < 0) then
-      nlst_rt(nest)%zsoil8(1:nlst_rt(nest)%nsoil) = zs(1:nlst_rt(nest)%nsoil)
+      nlst_rt(did)%zsoil8(1:nlst_rt(did)%nsoil) = zs(1:nlst_rt(did)%nsoil)
     else
-      nlst_rt(nest)%zsoil8(1:nlst_rt(nest)%nsoil) = -1*zs(1:nlst_rt(nest)%nsoil)
+      nlst_rt(did)%zsoil8(1:nlst_rt(did)%nsoil) = -1*zs(1:nlst_rt(did)%nsoil)
     endif
 
     call MPP_LAND_INIT()  ! required before get_file_dimension
@@ -345,6 +354,7 @@ contains
 !    call ESMF_DistGridConnectionSet(connectionList(1), tileIndexA=1, &
 !      tileIndexB=1, positionVector=(/nx_global, 0/), rc=rc)
 !    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+
 
     ! Create DistGrid based on WRFHDYRO Config NX,NY
     WRFHYDRO_distgrid = ESMF_DistGridCreate( &
@@ -384,27 +394,38 @@ contains
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
     cpl_outdate = start_time(1:19)
-    nlst_rt(nest)%startdate(1:19) = cpl_outdate(1:19)
-    nlst_rt(nest)%olddate(1:19) = cpl_outdate(1:19)
+    nlst_rt(did)%startdate(1:19) = cpl_outdate(1:19)
+    nlst_rt(did)%olddate(1:19) = cpl_outdate(1:19)
 
     ! Initialize the internal Land <-> Hydro Coupling
     call CPL_LAND_INIT(x_start, x_end, y_start, y_end)
+
+#ifdef HYDRO_D
+    write(6,"(A,I3,A,I4,A,I4)") "WRFHYDRO: (", localPet, &
+      ") calling HYDRO_ini sf_surface_physics=", sf_surface_physics, &
+      " nx_local=", nx_local, " ny_local=", ny_local
+#endif
 
     ! ntime used in HYDRO_ini
     ! Routing timestep set in HYDRO_ini
     ntime = 1
     if(sf_surface_physics .eq. 5) then
       ! clm4
-      call HYDRO_ini(ntime,did=nest,ix0=1,jx0=1)
+      call HYDRO_ini(ntime,did=did,ix0=1,jx0=1)
     else
-      call HYDRO_ini(ntime,nest,ix0=nx_local,jx0=ny_local,vegtyp=IVGTYP,soltyp=isltyp)
+      call HYDRO_ini(ntime,did,ix0=nx_local,jx0=ny_local,vegtyp=IVGTYP,soltyp=isltyp)
     endif
+
+#ifdef HYDRO_D
+    write(6,"(A,I3,A)") "WRFHYDRO: (", localPet, &
+      ") returned from HYDRO_ini"
+#endif
 
     ! Initialize the timestep from driver timestep passed to cap
     call ESMF_TimeIntervalGet(timestep,s_r8=dt,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
-    nlst_rt(nest)%dt = dt
-    if(nlst_rt(nest)%dt .le. 0) then
+    nlst_rt(did)%dt = dt
+    if(nlst_rt(did)%dt .le. 0) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
         msg="WRFHYDRO: Timestep less than 1 is not supported!", &
         file=FILENAME,rcToReturn=rc)
@@ -414,30 +435,39 @@ contains
     ! Adjust the routing timestep and factor
     ! At this point the coupling driver timestep is unknown
     ! and uses WRFHYDRO Config as best guess
-    if(nlst_rt(nest)%dtrt .ge. nlst_rt(nest)%dt) then
-       nlst_rt(nest)%dtrt = nlst_rt(nest)%dt
+    if(nlst_rt(did)%dtrt .ge. nlst_rt(did)%dt) then
+       nlst_rt(did)%dtrt = nlst_rt(did)%dt
        dt_factor = 1
     else
-      if(mod(nlst_rt(nest)%dt,nlst_rt(nest)%dtrt) /= 0) then
+      if(mod(nlst_rt(did)%dt,nlst_rt(did)%dtrt) /= 0) then
         call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
           msg="WRFHYDRO: Driver timestep is not a multiple of routine timestep!", &
           file=FILENAME,rcToReturn=rc)
         return  ! bail out
       endif
-      dt_factor = nlst_rt(nest)%dt/nlst_rt(nest)%dtrt
+      dt_factor = nlst_rt(did)%dt/nlst_rt(did)%dtrt
     endif
-    dt0 = nlst_rt(nest)%dt
-    dtrt0 = nlst_rt(nest)%dtrt
+    dt0 = nlst_rt(did)%dt
+    dtrt0 = nlst_rt(did)%dtrt
     dt_factor0 = dt_factor
 
-    RT_DOMAIN(nest)%initialized = .true.
+    RT_DOMAIN(did)%initialized = .true.
+
+    num_nests = num_nests + 1
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (', localPet, ') leaving ',METHOD
+#endif
 
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine wrfhydro_nuopc_run(nest,mode,clock,importState,exportState,rc)
-    integer, intent(in)                     :: nest
+#undef METHOD
+#define METHOD "wrfhydro_nuopc_run"
+
+  subroutine wrfhydro_nuopc_run(did,mode,clock,importState,exportState,rc)
+    integer, intent(in)                     :: did
     integer, intent(in)                     :: mode
     type(ESMF_Clock),intent(in)             :: clock
     type(ESMF_State),intent(inout)          :: importState
@@ -449,7 +479,11 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if(.not. RT_DOMAIN(nest)%initialized) then
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
+    if(.not. RT_DOMAIN(did)%initialized) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
         msg="WRHYDRO: Model has not been initialized!", &
         file=FILENAME,rcToReturn=rc)
@@ -461,65 +495,65 @@ contains
 
     call WRFHYDRO_ClockToString(clock,timestr=cpl_outdate,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
-    nlst_rt(nest)%olddate(1:19) = cpl_outdate(1:19) ! Current time is the
+    nlst_rt(did)%olddate(1:19) = cpl_outdate(1:19) ! Current time is the
 
-    nlst_rt(nest)%dt = WRFHYDRO_TimeIntervalGetReal(timeInterval=timeStep,rc=rc)
+    nlst_rt(did)%dt = WRFHYDRO_TimeIntervalGetReal(timeInterval=timeStep,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-    if(nlst_rt(nest)%dt .le. 0) then
+    if(nlst_rt(did)%dt .le. 0) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
         msg="WRFHYDRO: Timestep less than 1 is not supported!", &
         file=FILENAME,rcToReturn=rc)
       return  ! bail out
     endif
 
-    if((dt_factor*nlst_rt(nest)%dtrt) .ne. nlst_rt(nest)%dt) then   ! NUOPC driver time step changed.
+    if((dt_factor*nlst_rt(did)%dtrt) .ne. nlst_rt(did)%dt) then   ! NUOPC driver time step changed.
       call ESMF_LogWrite("WRFHYDRO: Driver timestep changed.",ESMF_LOGMSG_INFO)
-      if(nlst_rt(nest)%dtrt .ge. nlst_rt(nest)%dt) then
-        nlst_rt(nest)%dtrt = nlst_rt(nest)%dt
+      if(nlst_rt(did)%dtrt .ge. nlst_rt(did)%dt) then
+        nlst_rt(did)%dtrt = nlst_rt(did)%dt
         dt_factor = 1
       else
-        if(mod(nlst_rt(nest)%dt,nlst_rt(nest)%dtrt) /= 0) then
+        if(mod(nlst_rt(did)%dt,nlst_rt(did)%dtrt) /= 0) then
           call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
             msg="WRFHYDRO: New driver timestep is not a multiple of routing timestep!", &
             rcToReturn=rc)
           return  ! bail out
         endif
-        dt_factor = nlst_rt(nest)%dt/nlst_rt(nest)%dtrt
+        dt_factor = nlst_rt(did)%dt/nlst_rt(did)%dtrt
       endif
     endif
 
-    if(nlst_rt(nest)%SUBRTSWCRT .eq.0  .and. &
-      nlst_rt(nest)%OVRTSWCRT .eq. 0 .and. &
-      nlst_rt(nest)%GWBASESWCRT .eq. 0) then
+    if(nlst_rt(did)%SUBRTSWCRT .eq.0  .and. &
+      nlst_rt(did)%OVRTSWCRT .eq. 0 .and. &
+      nlst_rt(did)%GWBASESWCRT .eq. 0) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
         msg="WRFHYDRO: SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
         file=FILENAME,rcToReturn=rc)
       return  ! bail out
     endif
 
-    if((.not. RT_DOMAIN(nest)%initialized) .and. (nlst_rt(nest)%rst_typ .eq. 1) ) then
+    if((.not. RT_DOMAIN(did)%initialized) .and. (nlst_rt(did)%rst_typ .eq. 1) ) then
       call ESMF_LogWrite("WRFHYDRO: Restart initial data from offline file.", &
         ESMF_LOGMSG_INFO)
     else
 
       select case (mode)
         case (WRFHYDRO_Offline)
-          call read_forc_ldasout(nlst_rt(nest)%olddate(1:19), &
-            nlst_rt(nest)%hgrid, &
-            trim(configFile%indir), nlst_rt(nest)%dt, &
-            rt_domain(nest)%ix,rt_domain(nest)%jx, &
-            rt_domain(nest)%infxsrt,rt_domain(nest)%soldrain)
+          call read_forc_ldasout(nlst_rt(did)%olddate(1:19), &
+            nlst_rt(did)%hgrid, &
+            trim(configFile%indir), nlst_rt(did)%dt, &
+            rt_domain(did)%ix,rt_domain(did)%jx, &
+            rt_domain(did)%infxsrt,rt_domain(did)%soldrain)
         case (WRFHYDRO_Coupled)
-          call copy_import_fields(nest, importState, rc)
+          call copy_import_fields(did, importState, rc)
           if (ESMF_STDERRORCHECK(rc)) return
         case (WRFHYDRO_Hybrid)
-          call read_forc_ldasout(nlst_rt(nest)%olddate(1:19), &
-            nlst_rt(nest)%hgrid, &
-            trim(configFile%indir), nlst_rt(nest)%dt, &
-            rt_domain(nest)%ix,rt_domain(nest)%jx, &
-            rt_domain(nest)%infxsrt,rt_domain(nest)%soldrain)
-          call copy_import_fields(nest, importState, rc)
+          call read_forc_ldasout(nlst_rt(did)%olddate(1:19), &
+            nlst_rt(did)%hgrid, &
+            trim(configFile%indir), nlst_rt(did)%dt, &
+            rt_domain(did)%ix,rt_domain(did)%jx, &
+            rt_domain(did)%infxsrt,rt_domain(did)%soldrain)
+          call copy_import_fields(did, importState, rc)
           if (ESMF_STDERRORCHECK(rc)) return
         case default
           call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
@@ -530,32 +564,43 @@ contains
     endif
   
     ! Call the WRF-HYDRO run routine
-    call HYDRO_exe(did=nest)
+    call HYDRO_exe(did=did)
 
     !! Copy the data to NUOPC fields
-    call copy_export_fields(nest, exportState, rc)
+    call copy_export_fields(did, exportState, rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
     ! provide groundwater soil flux to WRF for fully coupled simulations (FERSCH 09/2014)
-    !if(nlst_rt(nest)%GWBASESWCRT .eq. 3 ) then
+    !if(nlst_rt(did)%GWBASESWCRT .eq. 3 ) then
       !Wei Yu: comment the following two lines. Not ready
-    !yw     qsgw(x_start(1):x_end(1),y_start(1):y_end(1)) = gw2d(nest)%qsgw
-    !yw     config_flags%gwsoilcpl = nlst_rt(nest)%gwsoilcpl
+    !yw     qsgw(x_start(1):x_end(1),y_start(1):y_end(1)) = gw2d(did)%qsgw
+    !yw     config_flags%gwsoilcpl = nlst_rt(did)%gwsoilcpl
     !end if
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
 
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine wrfhydro_nuopc_fin(nest,rc)
+#undef METHOD
+#define METHOD "wrfhydro_nuopc_fin"
+
+  subroutine wrfhydro_nuopc_fin(did,rc)
     ! ARGUMENTES
-    integer, intent(inout)      :: nest
+    integer, intent(inout)      :: did
     integer, intent(out)        :: rc
 
     ! LOCAL VARIABLES
     integer                     :: stat
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     ! WRF-Hydro finish routine cannot be called because it stops MPI
 
@@ -566,21 +611,29 @@ contains
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
 !    DCR - Turned off to let the model deallocate memory
-!    deallocate(nlst_rt(nest)%zsoil8)
+!    deallocate(nlst_rt(did)%zsoil8)
 !    if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
 !      msg='WRFHYDRO: Deallocation of model soil depth memory failed.', &
 !      file=FILENAME,rcToReturn=rc)) return ! bail out
 
-    RT_DOMAIN(nest)%initialized = .false.
+    RT_DOMAIN(did)%initialized = .false.
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
   ! Data copy Model to/from NUOPC
   !-----------------------------------------------------------------------------
 
-  subroutine WRFHYDRO_RoutingDomainPrint(nest,label,values,rc)
+#undef METHOD
+#define METHOD "WRFHYDRO_RoutingDomainPrint"
+
+  subroutine WRFHYDRO_RoutingDomainPrint(did,label,values,rc)
     ! ARGUMENTS
-    integer,intent(inout)         :: nest
+    integer,intent(inout)         :: did
     character(len=*),intent(in)   :: label
     logical                       :: values
     integer,intent(out)           :: rc
@@ -590,39 +643,48 @@ contains
 
     rc = ESMF_SUCCESS
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
     !! Land forcing fields
-    do lIndex = 1, nlst_rt(nest)%nsoil
-      call NUOPC_LogFarrayValue(rt_domain(nest)%STC(:,:,lIndex), &
+    do lIndex = 1, nlst_rt(did)%nsoil
+      call NUOPC_LogFarrayLclVal(rt_domain(did)%STC(:,:,lIndex), &
         fieldName="temperature of soil",label=label,rc=rc)
-      call NUOPC_LogFarrayValue(rt_domain(nest)%smc(:,:,lIndex), &
+      call NUOPC_LogFarrayLclVal(rt_domain(did)%smc(:,:,lIndex), &
         fieldName="moisture content of soil",label=label,rc=rc)
-      call NUOPC_LogFarrayValue(rt_domain(nest)%sh2ox(:,:,lIndex), &
+      call NUOPC_LogFarrayLclVal(rt_domain(did)%sh2ox(:,:,lIndex), &
         fieldName="liquid water content of soil",label=label,rc=rc)
     enddo
-    call NUOPC_LogFarrayValue(rt_domain(nest)%infxsrt, &
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%infxsrt, &
       fieldName="surface runoff flux",label=label,rc=rc)
-    call NUOPC_LogFarrayValue(rt_domain(nest)%soldrain, &
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%soldrain, &
       fieldName="subsurface runoff flux",label=label,rc=rc)
     
 
-    do lIndex = 1, nlst_rt(nest)%nsoil
+    do lIndex = 1, nlst_rt(did)%nsoil
       write(logMsg,"(A,I0,A,F0.3,A)") "WRFHYDRO: soil layer depth (layer,depth)=(", &
-        lIndex,",",rt_domain(nest)%SLDPTH(lIndex),")"
+        lIndex,",",rt_domain(did)%SLDPTH(lIndex),")"
       call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
     enddo
     write(logMsg,"(A,2(I0,A))") "WRFHYDRO: RT domain dimensions (IX,JX)=(", &
-      rt_domain(nest)%ix,",",rt_domain(nest)%jx,")"
+      rt_domain(did)%ix,",",rt_domain(did)%jx,")"
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    call NUOPC_LogFarrayValue(rt_domain(nest)%SMCMAX1, &
+
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%SMCMAX1, &
       fieldName="SMCMAX1",label=label,rc=rc)
-    call NUOPC_LogFarrayValue(rt_domain(nest)%SMCWLT1, &
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%SMCWLT1, &
       fieldName="SMCWLT1",label=label,rc=rc)
-    call NUOPC_LogFarrayValue(rt_domain(nest)%SMCREF1, &
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%SMCREF1, &
       fieldName="SMCREF1",label=label,rc=rc)
-    call NUOPC_LogFarrayValue(rt_domain(nest)%VEGTYP, &
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%VEGTYP, &
       fieldName="vegetation type",label=label,rc=rc)
-    call NUOPC_LogFarrayValue(rt_domain(nest)%node_area, &
+    call NUOPC_LogFarrayLclVal(rt_domain(did)%node_area, &
       fieldName="node area",label=label,rc=rc)
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
 
   end subroutine
 
@@ -630,9 +692,12 @@ contains
   ! Data copy Model to/from NUOPC
   !-----------------------------------------------------------------------------
 
-  subroutine copy_import_fields(nest,importState, rc)
+#undef METHOD
+#define METHOD "copy_import_fields"
+
+  subroutine copy_import_fields(did,importState, rc)
     ! ARGUMENTS
-    integer, intent(in)                     :: nest
+    integer, intent(in)                     :: did
     type(ESMF_State), intent(inout)         :: importState
     integer,          intent(out)           :: rc
 
@@ -644,6 +709,10 @@ contains
     type(ESMF_Field)           :: field
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -665,122 +734,47 @@ contains
       if(ESMF_STDERRORCHECK(rc)) return ! bail out 
 
       SELECT CASE (fieldNameList(fieldIndex))
-!        CASE ('aerodynamic_roughness_length')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('canopy_moisture_storage')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('carbon_dioxide')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('cosine_zenith_angle')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('exchange_coefficient_heat')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('exchange_coefficient_heat_height2m')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('exchange_coefficient_moisture_height2m')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('ice_mask')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_down_lw_flx')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_down_sw_flx')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_merid_wind_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_pres_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_pres_height_surface')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_spec_humid_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_temp_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_temp_height_surface')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_wind_speed_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('inst_zonal_wind_height_lowest')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-        CASE ('liquid_water_content_of_soil_layer_1')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%sh2ox(:,:,1),rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_1')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,1),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_water_content_of_soil_layer_2')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%sh2ox(:,:,2),rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_2')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,2),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_water_content_of_soil_layer_3')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%sh2ox(:,:,3),rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_3')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,3),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_water_content_of_soil_layer_4')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%sh2ox(:,:,4),rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_4')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-!        CASE ('mean_cprec_rate')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('mean_down_lw_flx')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('mean_down_sw_flx')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('mean_fprec_rate')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('mean_prec_rate')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-!        CASE ('mean_surface_albedo')
-!          call NUOPC_CopyFieldToFarray(field=field,farray=UNKNOWN,rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-        CASE ('moisture_content_of_soil_layer_1')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%smc(:,:,1),rc=rc)
+        CASE ('soil_moisture_fraction_layer_1')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,1),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('moisture_content_of_soil_layer_2')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%smc(:,:,2),rc=rc)
+        CASE ('soil_moisture_fraction_layer_2')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,2),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('moisture_content_of_soil_layer_3')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%smc(:,:,3),rc=rc)
+        CASE ('soil_moisture_fraction_layer_3')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,3),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('moisture_content_of_soil_layer_4')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%smc(:,:,4),rc=rc)
+        CASE ('soil_moisture_fraction_layer_4')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('subsurface_runoff_flux')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%soldrain,rc=rc)
+        CASE ('subsurface_runoff_amount')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%soldrain,rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return
-        CASE ('surface_runoff_flux')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%infxsrt,rc=rc)
+        CASE ('surface_runoff_amount')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%infxsrt,rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return
-        CASE ('temperature_of_soil_layer_1')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%stc(:,:,1),rc=rc)
+        CASE ('soil_temperature_layer_1')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,1),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_2')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%stc(:,:,2),rc=rc)
+        CASE ('soil_temperature_layer_2')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,2),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_3')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%stc(:,:,3),rc=rc)
+        CASE ('soil_temperature_layer_3')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,3),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_4')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(nest)%stc(:,:,4),rc=rc)
+        CASE ('soil_temperature_layer_4')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
           call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping import copy: "//trim(fieldNameList(fieldIndex)), &
@@ -790,13 +784,20 @@ contains
     enddo
     deallocate(fieldNameList)
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine copy_export_fields(nest, exportState, rc)
+#undef METHOD
+#define METHOD "copy_export_fields"
+
+  subroutine copy_export_fields(did, exportState, rc)
     ! ARGUMENTS
-    integer, intent(in)                     :: nest
+    integer, intent(in)                     :: did
     type(ESMF_State), intent(inout)         :: exportState
     integer,          intent(out)           :: rc
 
@@ -808,6 +809,10 @@ contains
     type(ESMF_Field)           :: field
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -829,47 +834,38 @@ contains
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
       SELECT CASE (fieldNameList(fieldIndex))
-        CASE ('liquid_water_content_of_soil_layer_1')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%sh2ox(:,:,1),field=field,rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_1')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,1),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_water_content_of_soil_layer_2')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%sh2ox(:,:,2),field=field,rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_2')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,2),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_water_content_of_soil_layer_3')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%sh2ox(:,:,3),field=field,rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_3')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,3),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_water_content_of_soil_layer_4')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%sh2ox(:,:,4),field=field,rc=rc)
+        CASE ('liquid_fraction_of_soil_moisture_layer_4')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,4),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-!        CASE ('liquid_water_content_of_surface_snow')
-!          call NUOPC_CopyFarrayToField(farray=UNKNOWN,field=field,rc=rc)
-!          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('subsurface_runoff_flux')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%soldrain,field=field,rc=rc)
+        CASE ('subsurface_runoff_amount')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%soldrain,field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('surface_runoff_flux')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%infxsrt,field=field,rc=rc)
+        CASE ('surface_runoff_amount')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%infxsrt,field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-!        CASE ('surface_snow_thickness')
-!          call NUOPC_CopyFarrayToField(farray=UNKNOWN,field=field,rc=rc)
-!          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_1')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%stc(:,:,1),field=field,rc=rc)
+        CASE ('soil_temperature_layer_1')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,1),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_2')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%stc(:,:,2),field=field,rc=rc)
+        CASE ('soil_temperature_layer_2')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,2),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_3')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%stc(:,:,3),field=field,rc=rc)
+        CASE ('soil_temperature_layer_3')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,3),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('temperature_of_soil_layer_4')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%stc(:,:,4),field=field,rc=rc)
+        CASE ('soil_temperature_layer_4')
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,4),field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-!        CASE ('volume_fraction_of_total_water_in_soil')
-!          call NUOPC_CopyFarrayToField(farray=UNKNOWN,field=field,rc=rc)
-!          if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('water_surface_height_above_reference_datum')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(nest)%sfcheadrt,field=field,rc=rc)
+          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sfcheadrt,field=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
           call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping export copy: "//trim(fieldNameList(fieldIndex)), &
@@ -879,9 +875,16 @@ contains
     enddo 
     deallocate(fieldNameList)
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "config_file_read"
 
   subroutine config_file_read(rc)
     integer, intent(out)                    :: rc
@@ -890,59 +893,56 @@ contains
     integer                     :: ierr
 
     ! NOAHLSM_OFFLINE namelist variables for NoahMP
-
-    integer  :: finemesh, finemesh_factor
-    integer :: forc_typ, snow_assim
-    character(len=256) :: GEO_STATIC_FLNM
-    integer :: HRLDAS_ini_typ
-    character(len=256) :: indir
-    integer            :: nsoil
-    real, dimension(MAX_SOIL_LEVELS) :: soil_thick_input       ! depth to soil interfaces from namelist [m]
-    integer            :: forcing_timestep, noah_timestep
+    character(len=256) :: indir = " ", outdir = " "
+    character(len=256) :: hrldas_constants_file = " "
+    character(len=256) :: spatial_filename = " ", mmf_runoff_file = " "
     integer            :: start_year, start_month, start_day, start_hour, start_min
-    character(len=256) :: outdir = "."
+    integer            :: kday, khour, forcing_timestep, noah_timestep
     character(len=256) :: restart_filename_requested = " "
     integer            :: restart_frequency_hours
-    integer            :: output_timestep
-    integer            :: dynamic_veg_option
-    integer            :: canopy_stomatal_resistance_option
-    integer            :: btr_option
-    integer            :: runoff_option
-    integer            :: surface_drag_option
-    integer            :: supercooled_water_option
-    integer            :: frozen_soil_option
-    integer            :: radiative_transfer_option
-    integer            :: snow_albedo_option
-    integer            :: pcp_partition_option
-    integer            :: tbot_option
+    integer            :: rst_bi_in, rst_bi_out
+    integer            :: output_timestep, split_output_count = 1
+    integer            :: nsoil, zlvl
+    real, dimension(MAX_SOIL_LEVELS) :: soil_thick_input       ! depth to soil interfaces from namelist [m]
+    integer            :: finemesh, finemesh_factor
+    integer            :: dynamic_veg_option, canopy_stomatal_resistance_option
+    integer            :: btr_option, runoff_option, surface_drag_option
+    integer            :: frozen_soil_option, supercooled_water_option
+    integer            :: radiative_transfer_option, snow_albedo_option
+    integer            :: pcp_partition_option, tbot_option
     integer            :: temp_time_scheme_option
-    integer            :: split_output_count = 1
-    integer            :: khour, kday
-    real               :: zlvl
-    character(len=256) :: hrldas_constants_file = " "
-    character(len=256) :: mmf_runoff_file = " "
+    integer            :: glacier_option, surface_resistance_option
+    integer            :: xstart = 1, ystart = 1, xend = 0, yend = 0
     character(len=256) :: external_fpar_filename_template = " "
     character(len=256) :: external_lai_filename_template = " "
-    integer            :: xstart = 1, ystart = 1, xend = 0, yend = 0
+    integer            :: forc_typ, HRLDAS_ini_typ, snow_assim
+    character(len=256) :: GEO_STATIC_FLNM = " "
 
-    namelist / NOAHLSM_OFFLINE /    &
-    finemesh,finemesh_factor,forc_typ, snow_assim , GEO_STATIC_FLNM, HRLDAS_ini_typ, &
-    indir, nsoil, soil_thick_input, forcing_timestep, noah_timestep, &
-    start_year, start_month, start_day, start_hour, start_min, &
-    outdir, &
-    restart_filename_requested, restart_frequency_hours, output_timestep, &
-
-    dynamic_veg_option, canopy_stomatal_resistance_option, &
-    btr_option, runoff_option, surface_drag_option, supercooled_water_option, &
-    frozen_soil_option, radiative_transfer_option, snow_albedo_option, &
-    pcp_partition_option, tbot_option, temp_time_scheme_option, &
-
-    split_output_count, &
-    khour, kday, zlvl, hrldas_constants_file, mmf_runoff_file, &
-    external_fpar_filename_template, external_lai_filename_template, &
-    xstart, xend, ystart, yend
+ namelist / NOAHLSM_OFFLINE /    &
+ INDIR, OUTDIR, &
+ HRLDAS_CONSTANTS_FILE, SPATIAL_FILENAME, MMF_RUNOFF_FILE, &
+ START_YEAR, START_MONTH, START_DAY, START_HOUR, START_MIN, &
+ KDAY,  KHOUR, FORCING_TIMESTEP, NOAH_TIMESTEP, &
+ RESTART_FILENAME_REQUESTED, RESTART_FREQUENCY_HOURS, &
+ RST_BI_IN, RST_BI_OUT, &
+ OUTPUT_TIMESTEP, SPLIT_OUTPUT_COUNT, &
+ NSOIL, SOIL_THICK_INPUT, ZLVL, &
+ FINEMESH, FINEMESH_FACTOR, &
+ DYNAMIC_VEG_OPTION, CANOPY_STOMATAL_RESISTANCE_OPTION, BTR_OPTION, &
+ RUNOFF_OPTION, SURFACE_DRAG_OPTION, FROZEN_SOIL_OPTION, &
+ SUPERCOOLED_WATER_OPTION, RADIATIVE_TRANSFER_OPTION, SNOW_ALBEDO_OPTION, &
+ PCP_PARTITION_OPTION, TBOT_OPTION, TEMP_TIME_SCHEME_OPTION, GLACIER_OPTION, &
+ SURFACE_RESISTANCE_OPTION, &
+ EXTERNAL_FPAR_FILENAME_TEMPLATE, EXTERNAL_LAI_FILENAME_TEMPLATE, &
+ XSTART, XEND, YSTART, YEND, &
+ EXTERNAL_FPAR_FILENAME_TEMPLATE, EXTERNAL_LAI_FILENAME_TEMPLATE, &
+ FORC_TYP, HRLDAS_INI_TYP, GEO_STATIC_FLNM, SNOW_ASSIM
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,A)") 'WRFHYDRO: entered ',METHOD
+#endif
 
     configFile%nsoil = 0
     configFile%indir = " "
@@ -992,33 +992,45 @@ contains
     configFile%OUTPUT_TIMESTEP = output_timestep
     configFile%soil_thick_input = soil_thick_input
 
+#ifdef HYDRO_D
+write(6,"(A,A)") 'WRFHYDRO: leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  function WRFHYDRO_GridCreate(nest,rc)
+#undef METHOD
+#define METHOD "WRFHYDRO_GridCreate"
+
+  function WRFHYDRO_GridCreate(did,rc)
     ! RETURN VALUE
     type(ESMF_Grid) :: WRFHYDRO_GridCreate
     ! ARGUMENTS
-    integer, intent(in)                     :: nest
+    integer, intent(in)                     :: did
     integer, intent(out)                    :: rc
     ! LOCAL VARIABLES
     integer                     :: stat
-    character(len=10)           :: nestID
-    real(ESMF_KIND_R8)          :: min_lat, max_lat, min_lon, max_lon
+    real                        :: min_lat, max_lat, min_lon, max_lon
     real, allocatable           :: latitude(:,:), longitude(:,:)
+    integer, allocatable        :: mask(:,:)
     integer                     :: lbnd(2),ubnd(2)
-    real(ESMF_KIND_R8), pointer :: coordXcenter(:,:)
-    real(ESMF_KIND_R8), pointer :: coordYcenter(:,:)
-    real(ESMF_KIND_R8), pointer :: coordXcorner(:,:)
-    real(ESMF_KIND_R8), pointer :: coordYcorner(:,:)
+    real(ESMF_KIND_RX), pointer :: coordXcenter(:,:)
+    real(ESMF_KIND_RX), pointer :: coordYcenter(:,:)
+    real(ESMF_KIND_RX), pointer :: coordXcorner(:,:)
+    real(ESMF_KIND_RX), pointer :: coordYcorner(:,:)
+    integer(ESMF_KIND_I4), pointer :: gridmask(:,:)
     integer                     :: i,j, i1,j1
 
     rc = ESMF_SUCCESS
 
-    write (nestID,"(I0)") nest
-    WRFHYDRO_GridCreate = ESMF_GridCreate(name='WRFHYDRO_Grid_'//trim(nestID), &
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
+    WRFHYDRO_GridCreate = ESMF_GridCreate(name='WRFHYDRO_Grid_'//trim(nlst_rt(did)%hgrid), &
       distgrid=WRFHYDRO_DistGrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
+      coordTypeKind=ESMF_TYPEKIND_RX, &
 !      gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,1/), &
       rc = rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -1043,11 +1055,16 @@ contains
       (/x_start,y_start/),longitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
+#ifdef HYDRO_D
     ! Print Local Lat Lon Lower Left / Upper Right Centers
     min_lat = latitude(1,1)
     max_lat = latitude(nx_local,ny_local)
     min_lon = longitude(1,1)
     max_lon = longitude(nx_local,ny_local)
+    write(6,"(A,I3,A,4(F0.3,A))") 'WRFHYDRO: (',my_id, &
+      ') CENTERS (min_lon,min_lat,max_lon,max_lat)=(', &
+      min_lon,',',min_lat,',',max_lon,',',max_lat,')'
+#endif
 
     ! Add Center Coordinates to Grid
     call ESMF_GridAddCoord(WRFHYDRO_GridCreate, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
@@ -1074,6 +1091,43 @@ contains
       msg='WRFHYDRO: Deallocation of longitude and latitude memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
+    ! Get Local Mask
+    allocate(mask(nx_local,ny_local),stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg='WRFHYDRO: Allocation of mask memory failed.', &
+      file=FILENAME, rcToReturn=rc)) return ! bail out
+    call NUOPC_NetcdfReadIXJX("LANDMASK",configFile%GEO_STATIC_FLNM, &
+      (/x_start,y_start/),mask,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+
+    ! Add Grid Mask
+    call ESMF_GridAddItem(WRFHYDRO_GridCreate, itemFlag=ESMF_GRIDITEM_MASK, &
+      staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    ! Get pointer to Grid Mask array
+    call ESMF_GridGetItem(WRFHYDRO_GridCreate, itemflag=ESMF_GRIDITEM_MASK, &
+      localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, &
+      farrayPtr=gridmask, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+
+    do j = lbnd(2),ubnd(2)
+    do i = lbnd(1),ubnd(1)
+      gridmask(i,j) = mask(i,j)
+      gridmask(i,j) = mask(i,j)
+    enddo
+    enddo
+
+    deallocate(mask,stat=stat)
+    if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
+      msg='WRFHYDRO: Deallocation of mask memory failed.', &
+      file=FILENAME,rcToReturn=rc)) return ! bail out
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+    return
+
     ! CORNERS
 
     ! Get Local Latitude (lat)
@@ -1094,11 +1148,16 @@ contains
       (/x_start,y_start/),longitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
+#ifdef HYDRO_D
     ! Print Local Lat Lon Lower Left / Upper Right Corners
     min_lat = latitude(1,1)
     max_lat = latitude(nx_local+1,ny_local+1)
     min_lon = longitude(1,1)
     max_lon = longitude(nx_local+1,ny_local+1)
+    write(6,"(A,I3,A,4(F0.3,A))") 'WRFHYDRO: (',my_id, &
+      ') CORNERS (min_lon,min_lat,max_lon,max_lat)=(', &
+      min_lon,',',min_lat,',',max_lon,',',max_lat,')'
+#endif
 
     ! Add Corner Coordinates to Grid
     call ESMF_GridAddCoord(WRFHYDRO_GridCreate, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
@@ -1128,9 +1187,16 @@ contains
     call add_area(WRFHYDRO_GridCreate, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end function
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "add_area"
 
   subroutine add_area(grid,rc)
     type(ESMF_Grid), intent(inout)          :: grid
@@ -1146,6 +1212,10 @@ contains
     real(ESMF_KIND_R8), pointer      :: gridarea(:,:)
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     fieldArea = ESMF_FieldCreate(grid=grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
@@ -1173,9 +1243,16 @@ contains
      enddo
      enddo
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "set_local_indices"
 
   subroutine set_local_indices(rc)
     ! ARGUMENTS
@@ -1191,6 +1268,10 @@ contains
     integer, allocatable        :: iIndexList(:), jIndexList(:)
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     !! Get VM Info to see if this will give me the PET info I need
     call ESMF_VMGetCurrent(currentVM, rc=rc)
@@ -1240,24 +1321,68 @@ contains
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
       msg='WRFHYDRO: Deallocation of indexCountPDeo memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  function WRFHYDRO_get_timestep(nest,rc)
+#undef METHOD
+#define METHOD "WRFHYDRO_get_timestep"
+
+  function WRFHYDRO_get_timestep(did,rc)
     ! RETURN VALUE
     real :: WRFHYDRO_get_timestep
     ! ARGUMENTS
-    integer, intent(in)         :: nest
+    integer, intent(in)         :: did
     integer, intent(out)        :: rc
 
     rc = ESMF_SUCCESS
 
-    WRFHYDRO_get_timestep = nlst_rt(nest)%dt
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
+    WRFHYDRO_get_timestep = nlst_rt(did)%dt
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
 
   end function
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_get_hgrid"
+
+  subroutine WRFHYDRO_get_hgrid(did,hgrid,rc)
+    ! ARGUMENTS
+    integer, intent(in)         :: did
+    character, intent(out)      :: hgrid
+    integer, intent(out)        :: rc
+
+    rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
+    hgrid = nlst_rt(did)%hgrid
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
+  end subroutine
+
+  !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_RunModeGet"
 
   function WRFHYDRO_RunModeGet(importState,rc)
     ! RETURN
@@ -1272,13 +1397,18 @@ contains
     type(ESMF_StateItem_Flag)  :: itemType
 
     if(present(rc)) rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
     WRFHYDRO_RunModeGet = WRFHYDRO_Unknown
     forcingCount = 0
     connectedCount = 0
 
     do fieldIndex=1, size(WRFHYDRO_FieldList)
-      if(WRFHYDRO_FieldList(fieldIndex)%forcing) then
-        forcingCount = forcingCount + 1        
+      if(WRFHYDRO_FieldList(fieldIndex)%adImport) then
+        forcingCount = forcingCount + 1
         ! Check itemType to see if field exists in state
         call ESMF_StateGet(importState, &
           itemName=trim(WRFHYDRO_FieldList(fieldIndex)%stdname), &
@@ -1302,11 +1432,18 @@ contains
       WRFHYDRO_RunModeGet = WRFHYDRO_Hybrid
     endif
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end function
 
   !-----------------------------------------------------------------------------
   ! Conversion Utilities
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_ClockToString"
 
   subroutine WRFHYDRO_ClockToString(clock, timestr, rc)
     ! ARGUMENTS
@@ -1319,6 +1456,10 @@ contains
 
     if(present(rc)) rc = ESMF_SUCCESS  ! Initialize
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
     ! Get the current time from the clock
     call ESMF_ClockGet(clock=clock,currTime=currTime,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -1326,9 +1467,16 @@ contains
     call WRFHYDRO_TimeToString(currTime,timestr,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
 !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_TimeToString"
 
   subroutine WRFHYDRO_TimeToString(time, timestr, rc)
     ! ARGUMENTS
@@ -1341,6 +1489,11 @@ contains
     integer                    :: strlen
 
     if(present(rc)) rc = ESMF_SUCCESS  ! Initialize
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
     timestr = '' ! clear string
 
     if (len(timestr) < 19) then
@@ -1357,9 +1510,16 @@ contains
     timestr(1:strlen) = tmpstr(1:strlen)
     timestr(11:11) = '_'
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_TimeIntervalGetReal"
 
   function WRFHYDRO_TimeIntervalGetReal(timeInterval,rc)
     ! RETURN VALUE:
@@ -1372,17 +1532,29 @@ contains
     real(ESMF_KIND_R8)                  :: s_r8
 
     if(present(rc)) rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
     WRFHYDRO_TimeIntervalGetReal = -9999
 
     call ESMF_TimeIntervalGet(timeInterval,s_r8=s_r8,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
     WRFHYDRO_TimeIntervalGetReal = s_r8
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end function
 
   !-----------------------------------------------------------------------------
   ! Dictionary Utility
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_FieldDictionaryAdd"
 
   subroutine WRFHYDRO_FieldDictionaryAdd(rc)
     ! ARGUMENTS
@@ -1392,6 +1564,10 @@ contains
     logical                    :: isPresent
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     do fIndex=1,size(WRFHYDRO_FieldList)
       isPresent = NUOPC_FieldDictionaryHasEntry( &
@@ -1407,11 +1583,18 @@ contains
       endif
     enddo
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
   ! Log Utilities
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_ConfigFileLog"
 
   subroutine WRFHYDRO_ConfigFileLog(label,rc)
     ! ARGUMENTS
@@ -1422,6 +1605,10 @@ contains
     character(len=64)                    :: l_label
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     if (present(label)) then
       l_label = label
@@ -1453,7 +1640,16 @@ contains
       configFile%soil_thick_input(configFile%nsoil),")"
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
+
+  !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_ConfigLog"
 
   subroutine WRFHYDRO_ConfigLog(label,rc)
     ! ARGUMENTS
@@ -1464,6 +1660,10 @@ contains
     character(len=64)                    :: l_label
 
     rc = ESMF_SUCCESS
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
 
     if (present(label)) then
       l_label = label
@@ -1501,11 +1701,21 @@ contains
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
     write (logMsg, "(2A)") trim(l_label)//" Couple outdate=",cpl_outdate
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
+
   end subroutine
 
-  subroutine WRFHYDRO_nlstLog(nest,label,rc)
+  !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_nlstLog"
+
+  subroutine WRFHYDRO_nlstLog(did,label,rc)
     ! ARGUMENTS
-    integer,intent(inout)                :: nest
+    integer,intent(inout)                :: did
     character(len=*),intent(in),optional :: label
     integer,intent(out)                  :: rc
 
@@ -1515,214 +1725,163 @@ contains
 
     rc = ESMF_SUCCESS
 
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#endif
+
     if (present(label)) then
       l_label = label
     else
       l_label = 'WRFHYDRO: nlstLog'
     endif
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Nest=",nest
+    write (logMsg,"(A,I0)") trim(l_label)//" DomainID=",did
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Soil Layers=",nlst_rt(nest)%nsoil
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" SOLVEG_INITSWC=",nlst_rt(nest)%SOLVEG_INITSWC
+    write (logMsg,"(A,I0)") trim(l_label)//" Soil Layers=",nlst_rt(did)%nsoil
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    do layerIndex=1,nlst_rt(nest)%nsoil
+    write (logMsg,"(A,I0)") trim(l_label)//" SOLVEG_INITSWC=",nlst_rt(did)%SOLVEG_INITSWC
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+    do layerIndex=1,nlst_rt(did)%nsoil
       write (logMsg,"(A,I0,A,F0.3,A)") trim(l_label)//" Soil layer depth (layer,depth): (", &
-        layerIndex,",",nlst_rt(nest)%ZSOIL8(layerIndex),")"
+        layerIndex,",",nlst_rt(did)%ZSOIL8(layerIndex),")"
       call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
     enddo
  
     write (logMsg,"(A,3(F0.3,A))") trim(l_label)//" Timestep (out_dt,rst_dt,dt): (", &
-      nlst_rt(nest)%out_dt,",",nlst_rt(nest)%rst_dt,",", &
-      nlst_rt(nest)%dt,")"
+      nlst_rt(did)%out_dt,",",nlst_rt(did)%rst_dt,",", &
+      nlst_rt(did)%dt,")"
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
     write (logMsg,"(A,5(I0,A))") trim(l_label)//" Start (YR-MN-DY_HR:MN)=", &
-      nlst_rt(nest)%START_YEAR,"-",nlst_rt(nest)%START_MONTH,"-", &
-      nlst_rt(nest)%START_DAY,"_", &
-      nlst_rt(nest)%START_HOUR,":",nlst_rt(nest)%START_MIN
+      nlst_rt(did)%START_YEAR,"-",nlst_rt(did)%START_MONTH,"-", &
+      nlst_rt(did)%START_DAY,"_", &
+      nlst_rt(did)%START_HOUR,":",nlst_rt(did)%START_MIN
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,A)") trim(l_label)//" Restart file=",trim(nlst_rt(nest)%restart_file)
+    write (logMsg,"(A,A)") trim(l_label)//" Restart file=",trim(nlst_rt(did)%restart_file)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Split output count=",nlst_rt(nest)%split_output_count
+    write (logMsg,"(A,I0)") trim(l_label)//" Split output count=",nlst_rt(did)%split_output_count
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid ID=",nlst_rt(nest)%igrid
+    write (logMsg,"(A,I0)") trim(l_label)//" Grid ID=",nlst_rt(did)%igrid
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
     write (logMsg,"(A,2(I0,A))") trim(l_label)//" Parallel IO (in,out): (", &
-      nlst_rt(nest)%rst_bi_in,",",nlst_rt(nest)%rst_bi_out,")"
+      nlst_rt(did)%rst_bi_in,",",nlst_rt(did)%rst_bi_out,")"
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,A)") trim(l_label)//" Geo static filename=",trim(nlst_rt(nest)%geo_static_flnm)
+    write (logMsg,"(A,A)") trim(l_label)//" Geo static filename=",trim(nlst_rt(did)%geo_static_flnm)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" DEEPGWSPIN=",nlst_rt(nest)%DEEPGWSPIN
+    write (logMsg,"(A,I0)") trim(l_label)//" DEEPGWSPIN=",nlst_rt(did)%DEEPGWSPIN
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Order to write=",nlst_rt(nest)%order_to_write
+    write (logMsg,"(A,I0)") trim(l_label)//" Order to write=",nlst_rt(did)%order_to_write
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Restart type=",nlst_rt(nest)%rst_typ
+    write (logMsg,"(A,I0)") trim(l_label)//" Restart type=",nlst_rt(did)%rst_typ
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,A)") trim(l_label)//" Hydro Grid=",nlst_rt(nest)%hgrid
+    write (logMsg,"(A,A)") trim(l_label)//" Hydro Grid=",nlst_rt(did)%hgrid
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,A)") trim(l_label)//" Old date=",nlst_rt(nest)%olddate
+    write (logMsg,"(A,A)") trim(l_label)//" Old date=",nlst_rt(did)%olddate
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" Start date=",nlst_rt(nest)%startdate
+    write (logMsg,"(A,A)") trim(l_label)//" Start date=",nlst_rt(did)%startdate
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" Since date=",nlst_rt(nest)%sincedate
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" Routing option=",nlst_rt(nest)%RT_OPTION
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" CHANRTSWCRT=",nlst_rt(nest)%CHANRTSWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Channel option=",nlst_rt(nest)%channel_option
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" SUBRTSWCRT=",nlst_rt(nest)%SUBRTSWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" OVRTSWCRT=",nlst_rt(nest)%OVRTSWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" AGGFACTRT=",nlst_rt(nest)%AGGFACTRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GWBASESWCRT=",nlst_rt(nest)%GWBASESWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GW_RESTART=",nlst_rt(nest)%GW_RESTART
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" RSTRT_SWC=",nlst_rt(nest)%RSTRT_SWC
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" TERADJ_SOLAR=",nlst_rt(nest)%TERADJ_SOLAR
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" System coupling=",nlst_rt(nest)%sys_cpl
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" gwChanCondSw=",nlst_rt(nest)%gwChanCondSw
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GwPreCycles=",nlst_rt(nest)%GwPreCycles
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GwSpinCycles=",nlst_rt(nest)%GwSpinCycles
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GwPreDiagInterval=",nlst_rt(nest)%GwPreDiagInterval
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" gwsoilcpl=",nlst_rt(nest)%gwsoilcpl
+    write (logMsg,"(A,A)") trim(l_label)//" Since date=",nlst_rt(did)%sincedate
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,L1)") trim(l_label)//" GwPreDiag=",nlst_rt(nest)%GwPreDiag
+    write (logMsg,"(A,I0)") trim(l_label)//" Routing option=",nlst_rt(did)%RT_OPTION
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,L1)") trim(l_label)//" GwSpinUp=",nlst_rt(nest)%GwSpinUp
+    write (logMsg,"(A,I0)") trim(l_label)//" CHANRTSWCRT=",nlst_rt(did)%CHANRTSWCRT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" DTRT=",nlst_rt(nest)%DTRT
+    write (logMsg,"(A,I0)") trim(l_label)//" Channel option=",nlst_rt(did)%channel_option
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" dxrt0=",nlst_rt(nest)%dxrt0
+    write (logMsg,"(A,I0)") trim(l_label)//" SUBRTSWCRT=",nlst_rt(did)%SUBRTSWCRT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" DTCT=",nlst_rt(nest)%DTCT
+    write (logMsg,"(A,I0)") trim(l_label)//" OVRTSWCRT=",nlst_rt(did)%OVRTSWCRT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" gwChanCondConstIn=",nlst_rt(nest)%gwChanCondConstIn
+    write (logMsg,"(A,I0)") trim(l_label)//" AGGFACTRT=",nlst_rt(did)%AGGFACTRT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" gwChanCondConstOut=",nlst_rt(nest)%gwChanCondConstOut
+    write (logMsg,"(A,I0)") trim(l_label)//" GWBASESWCRT=",nlst_rt(did)%GWBASESWCRT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" gwIhShift=",nlst_rt(nest)%gwIhShift
+    write (logMsg,"(A,I0)") trim(l_label)//" GW_RESTART=",nlst_rt(did)%GW_RESTART
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,A)") trim(l_label)//" route_topo_f=",trim(nlst_rt(nest)%route_topo_f)
+    write (logMsg,"(A,I0)") trim(l_label)//" RSTRT_SWC=",nlst_rt(did)%RSTRT_SWC
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_chan_f=",trim(nlst_rt(nest)%route_chan_f)
+    write (logMsg,"(A,I0)") trim(l_label)//" TERADJ_SOLAR=",nlst_rt(did)%TERADJ_SOLAR
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_link_f=",trim(nlst_rt(nest)%route_link_f)
+    write (logMsg,"(A,I0)") trim(l_label)//" System coupling=",nlst_rt(did)%sys_cpl
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_lake_f=",trim(nlst_rt(nest)%route_lake_f)
+    write (logMsg,"(A,I0)") trim(l_label)//" gwChanCondSw=",nlst_rt(did)%gwChanCondSw
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_direction_f=",trim(nlst_rt(nest)%route_direction_f)
+    write (logMsg,"(A,I0)") trim(l_label)//" GwPreCycles=",nlst_rt(did)%GwPreCycles
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_order_f=",trim(nlst_rt(nest)%route_order_f)
+    write (logMsg,"(A,I0)") trim(l_label)//" GwSpinCycles=",nlst_rt(did)%GwSpinCycles
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" gwbasmskfil=",trim(nlst_rt(nest)%gwbasmskfil)
+    write (logMsg,"(A,I0)") trim(l_label)//" GwPreDiagInterval=",nlst_rt(did)%GwPreDiagInterval
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" gwstrmfil=",trim(nlst_rt(nest)%gwstrmfil)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" geo_finegrid_flnm=",trim(nlst_rt(nest)%geo_finegrid_flnm)
+    write (logMsg,"(A,I0)") trim(l_label)//" gwsoilcpl=",nlst_rt(did)%gwsoilcpl
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Point timeseries output at user specified points=",nlst_rt(nest)%frxst_pts_out
+    write (logMsg,"(A,L1)") trim(l_label)//" GwPreDiag=",nlst_rt(did)%GwPreDiag
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Point timeseries output at all channel points=",nlst_rt(nest)%CHRTOUT_DOMAIN
+    write (logMsg,"(A,L1)") trim(l_label)//" GwSpinUp=",nlst_rt(did)%GwSpinUp
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of channel streamflow values=",nlst_rt(nest)%CHRTOUT_GRID
+    write (logMsg,"(A,F0.3)") trim(l_label)//" DTRT=",nlst_rt(did)%DTRT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of variables passed between LSM and routing components=",nlst_rt(nest)%LSMOUT_DOMAN
+    write (logMsg,"(A,F0.3)") trim(l_label)//" dxrt0=",nlst_rt(did)%dxrt0
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of terrain routing variables on routing grid=",nlst_rt(nest)%RTOUT_DOMAIN
+    write (logMsg,"(A,F0.3)") trim(l_label)//" DTCT=",nlst_rt(did)%DTCT
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of GW=",nlst_rt(nest)%output_gw
+    write (logMsg,"(A,F0.3)") trim(l_label)//" gwChanCondConstIn=",nlst_rt(did)%gwChanCondConstIn
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of lakes=",nlst_rt(nest)%outlake
+    write (logMsg,"(A,F0.3)") trim(l_label)//" gwChanCondConstOut=",nlst_rt(did)%gwChanCondConstOut
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,F0.3)") trim(l_label)//" gwIhShift=",nlst_rt(did)%gwIhShift
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-  end subroutine
-
-  subroutine WRFHYDRO_FieldListLog(label,rc)
-    character(len=*),intent(in),optional :: label
-    integer,intent(out),optional         :: rc
-
-    ! local variables
-    character(len=64)          :: l_label
-    integer                    :: fieldIndex
-    integer                    :: importCount
-    integer                    :: forcingCount
-    integer                    :: exportCount
-    character(len=ESMF_MAXSTR) :: logMsg
-
-    if(present(rc)) rc = ESMF_SUCCESS
-
-    if (present(label)) then
-      l_label = label
-    else
-      l_label = 'WRFHYDRO: FieldListLog'
-    endif
-
-    importCount = 0
-    forcingCount = 0
-    exportCount = 0
-
-    do fieldIndex = 1, size(WRFHYDRO_FieldList)
-      if(WRFHYDRO_FieldList(fieldIndex)%forcing) then
-        forcingCount = forcingCount + 1
-        call ESMF_LogWrite(trim(l_label)//" Forcing Field List="// &
-          trim(WRFHYDRO_FieldList(fieldIndex)%stdname),ESMF_LOGMSG_INFO)
-      endif
-    enddo
-
-    do fieldIndex = 1, size(WRFHYDRO_FieldList)
-      if(WRFHYDRO_FieldList(fieldIndex)%import) then
-        importCount = importCount + 1
-        call ESMF_LogWrite(trim(l_label)//" Import Field List="// &
-          trim(WRFHYDRO_FieldList(fieldIndex)%stdname),ESMF_LOGMSG_INFO)
-      endif
-    enddo
-
-    do fieldIndex = 1, size(WRFHYDRO_FieldList)
-      if(WRFHYDRO_FieldList(fieldIndex)%export) then
-        exportCount = exportCount + 1
-        call ESMF_LogWrite(trim(l_label)//" Export Field List="// &
-          trim(WRFHYDRO_FieldList(fieldIndex)%stdname),ESMF_LOGMSG_INFO)
-      endif
-    enddo
-
-    write (logMsg,"(A,I0)") trim(l_label)//" Total Fields Count=",size(WRFHYDRO_FieldList)
+    write (logMsg,"(A,A)") trim(l_label)//" route_topo_f=",trim(nlst_rt(did)%route_topo_f)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Forcing Fields Count=",forcingCount
+    write (logMsg,"(A,A)") trim(l_label)//" route_chan_f=",trim(nlst_rt(did)%route_chan_f)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Import Fields Count=",importCount
+    write (logMsg,"(A,A)") trim(l_label)//" route_link_f=",trim(nlst_rt(did)%route_link_f)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Export Fields Count=",exportCount
+    write (logMsg,"(A,A)") trim(l_label)//" route_lake_f=",trim(nlst_rt(did)%route_lake_f)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") trim(l_label)//" route_direction_f=",trim(nlst_rt(did)%route_direction_f)
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") trim(l_label)//" route_order_f=",trim(nlst_rt(did)%route_order_f)
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") trim(l_label)//" gwbasmskfil=",trim(nlst_rt(did)%gwbasmskfil)
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") trim(l_label)//" gwstrmfil=",trim(nlst_rt(did)%gwstrmfil)
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") trim(l_label)//" geo_finegrid_flnm=",trim(nlst_rt(did)%geo_finegrid_flnm)
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+    write (logMsg,"(A,I0)") trim(l_label)//" Point timeseries output at user specified points=",nlst_rt(did)%frxst_pts_out
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") trim(l_label)//" Point timeseries output at all channel points=",nlst_rt(did)%CHRTOUT_DOMAIN
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") trim(l_label)//" Grid of channel streamflow values=",nlst_rt(did)%CHRTOUT_GRID
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") trim(l_label)//" Grid of variables passed between LSM and routing components=",nlst_rt(did)%LSMOUT_DOMAN
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") trim(l_label)//" Grid of terrain routing variables on routing grid=",nlst_rt(did)%RTOUT_DOMAIN
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") trim(l_label)//" Grid of GW=",nlst_rt(did)%output_gw
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") trim(l_label)//" Grid of lakes=",nlst_rt(did)%outlake
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+#ifdef HYDRO_D
+write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#endif
 
   end subroutine
 

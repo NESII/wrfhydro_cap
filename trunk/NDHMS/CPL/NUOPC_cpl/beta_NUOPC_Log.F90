@@ -1,8 +1,8 @@
 #define ESMF_STDERRORCHECK(rc) ESMF_LogFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)
-#define FILENAME "NUOPC_LogUtility.F90"
-#define MODNAME "NUOPC_LogUtility"
+#define FILENAME "beta_NUOPC_Log.F90"
+#define MODNAME "beta_NUOPC_Log"
 
-module NUOPC_LogUtility
+module beta_NUOPC_Log
   use ESMF
   use NUOPC
 
@@ -16,25 +16,25 @@ module NUOPC_LogUtility
   public :: NUOPC_LogGrid
   public :: NUOPC_LogFieldList
   public :: NUOPC_LogField
-  public :: NUOPC_LogFieldValue
-  public :: NUOPC_LogArrayValue
-  public :: NUOPC_LogFarrayValue
+  public :: NUOPC_LogFieldLclVal
+  public :: NUOPC_LogArrayLclVal
+  public :: NUOPC_LogFarrayLclVal
   public :: NUOPC_LogCplList
 
   ! module interfaces
-  interface NUOPC_LogFarrayValue
-    module procedure NUOPC_LogFarrayValue_I41D
-    module procedure NUOPC_LogFarrayValue_I42D
-    module procedure NUOPC_LogFarrayValue_I43D
-    module procedure NUOPC_LogFarrayValue_I81D
-    module procedure NUOPC_LogFarrayValue_I82D
-    module procedure NUOPC_LogFarrayValue_I83D
-    module procedure NUOPC_LogFarrayValue_R41D
-    module procedure NUOPC_LogFarrayValue_R42D
-    module procedure NUOPC_LogFarrayValue_R43D
-    module procedure NUOPC_LogFarrayValue_R81D
-    module procedure NUOPC_LogFarrayValue_R82D
-    module procedure NUOPC_LogFarrayValue_R83D
+  interface NUOPC_LogFarrayLclVal
+    module procedure NUOPC_LogFarrayLclVal_I41D
+    module procedure NUOPC_LogFarrayLclVal_I42D
+    module procedure NUOPC_LogFarrayLclVal_I43D
+    module procedure NUOPC_LogFarrayLclVal_I81D
+    module procedure NUOPC_LogFarrayLclVal_I82D
+    module procedure NUOPC_LogFarrayLclVal_I83D
+    module procedure NUOPC_LogFarrayLclVal_R41D
+    module procedure NUOPC_LogFarrayLclVal_R42D
+    module procedure NUOPC_LogFarrayLclVal_R43D
+    module procedure NUOPC_LogFarrayLclVal_R81D
+    module procedure NUOPC_LogFarrayLclVal_R82D
+    module procedure NUOPC_LogFarrayLclVal_R83D
   end interface
 
   contains
@@ -56,13 +56,13 @@ module NUOPC_LogUtility
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogStateList:'
+      llabel = 'NUOPC_LogStateList'
     endif
 
     do sIndex=1, size(stateList)
-      call NUOPC_LogState(stateList(sIndex),nestedFlag,label,rc)
+      call NUOPC_LogState(stateList(sIndex),nestedFlag,label,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
     enddo
 
@@ -70,29 +70,38 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogState(state,nestedFlag,label,rc)
+  subroutine NUOPC_LogState(state,nestedFlag,label,fvalues,rc)
     type(ESMF_State),intent(in)  :: state
     logical,intent(in),optional  :: nestedFlag
     character(len=*),optional    :: label
+    logical,intent(in),optional  :: fvalues
     integer,intent(out),optional :: rc
 
     ! local variables
     character(len=64)                     :: llabel
+    logical                               :: lfvalues
     integer                               :: stat
     integer                               :: itemCount
     character(len=64),allocatable         :: itemNameList(:)
     type(ESMF_StateItem_Flag),allocatable :: itemTypeList(:)
+    type(ESMF_Field)                      :: field
     character(len=64)                     :: stateName
     character(len=12)                     :: itemTypeStr
     integer                               :: iIndex
-    character(len=ESMF_MAXSTR)           :: logMsg
+    character(len=ESMF_MAXSTR)            :: logMsg
 
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogState:'
+      llabel = 'NUOPC_LogState'
+    endif
+
+    if (present(fvalues)) then
+      lfvalues = fvalues
+    else
+      lfvalues = .FALSE.
     endif
 
     call ESMF_StateGet(state, nestedFlag=nestedFlag, &
@@ -109,10 +118,9 @@ module NUOPC_LogUtility
         itemNameList=itemNameList,itemTypeList=itemTypeList, rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
     else
-      write (logMsg,"(A,A)") trim(llabel)//" ", &
+      write (logMsg,"(A,A)") trim(llabel)//": ", &
         trim(stateName)//" is empty."
-      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-          line=__LINE__, file=FILENAME)
+      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
     endif
 
     do iIndex=1, itemCount
@@ -132,12 +140,21 @@ module NUOPC_LogUtility
         itemTypeStr = 'UNKNOWN'
       endif
 
-      write (logMsg,"(A,A,(A,I0,A,I0,A),A)") trim(llabel)//" ", &
+      write (logMsg,"(A,A,(A,I0,A,I0,A),A)") trim(llabel)//": ", &
         trim(stateName), &
         " StateItem(",iIndex," of ",itemCount,") ", &
-        trim(itemNameList(iIndex))//"["//itemTypeStr//"]"
-      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-        line=__LINE__, file=FILENAME)
+        trim(itemNameList(iIndex))//"["//trim(itemTypeStr)//"]"
+      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
+      if (lfvalues) then
+        if (itemTypeList(iIndex) == ESMF_STATEITEM_FIELD) then
+          call ESMF_StateGet(state,itemName=itemNameList(iIndex), &
+            field=field,rc=rc)
+          if(ESMF_STDERRORCHECK(rc)) return ! bail out
+          call NUOPC_LogFieldLclVal(field, &
+            label=trim(llabel)//": "//trim(stateName), rc=rc)
+          if(ESMF_STDERRORCHECK(rc)) return ! bail out
+        endif
+      endif
     enddo
 
     if (itemCount > 0) then
@@ -174,9 +191,9 @@ module NUOPC_LogUtility
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
     if(present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogFieldConnections: '//trim(stateName)
+      llabel = 'NUOPC_LogFieldConnections '//trim(stateName)
     endif
 
     call ESMF_StateGet(state, itemCount=itemCount, &
@@ -195,13 +212,13 @@ module NUOPC_LogUtility
 
     do iIndex=1, itemCount
       if (itemTypeList(iIndex) /= ESMF_STATEITEM_FIELD) then
-        write (logMsg,"(A,A)") trim(llabel)//" ", &
+        write (logMsg,"(A,A)") trim(llabel)//": ", &
           trim(itemNameList(iIndex))//" is not a field."
       elseif (NUOPC_IsConnected(state, fieldName=itemNameList(iIndex))) then
-        write (logMsg,"(A,A)") trim(llabel)//" ", &
+        write (logMsg,"(A,A)") trim(llabel)//": ", &
           trim(itemNameList(iIndex))//" is connected."
       else
-        write (logMsg,"(A,A)") trim(llabel)//" ", &
+        write (logMsg,"(A,A)") trim(llabel)//": ", &
           trim(itemNameList(iIndex))//" is not connected."
       endif
       call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
@@ -239,9 +256,9 @@ module NUOPC_LogUtility
 
     if (present(rc)) rc = ESMF_SUCCESS
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogGrid:'
+      llabel = 'NUOPC_LogGrid'
     endif
 
     ! access localDeCount to show this is a real Grid
@@ -269,7 +286,7 @@ module NUOPC_LogUtility
     enddo
 
     if (coordDimMax == 1) then
-      write (logMsg,"(A,A,A)") trim(llabel)//" ", &
+      write (logMsg,"(A,A,A)") trim(llabel)//": ", &
         trim(gridName), &
         " is a rectilinear grid with 1D coordinates in each dimension."
       call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
@@ -282,7 +299,7 @@ module NUOPC_LogUtility
       line=__LINE__, file=FILENAME)) &
       return  ! bail out
 
-    write (logMsg,"(A,A,(A,I0))") trim(llabel)//" ", &
+    write (logMsg,"(A,A,(A,I0))") trim(llabel)//": ", &
       trim(gridName), &
       " local decomposition count=",localDeCount
     call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
@@ -291,11 +308,11 @@ module NUOPC_LogUtility
     call ESMF_DistGridGet(distgrid, dimCount=dimCount, tileCount=tileCount, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    write (logMsg,"(A,A,(A,I0))") trim(llabel)//" ", &
+    write (logMsg,"(A,A,(A,I0))") trim(llabel)//": ", &
       trim(gridName), &
       " dimension count=",dimCount
     call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A,(A,I0))") trim(llabel)//" ", &
+    write (logMsg,"(A,A,(A,I0))") trim(llabel)//": ", &
       trim(gridName), &
       " tile count=",tileCount
     call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
@@ -315,7 +332,7 @@ module NUOPC_LogUtility
 
     do tileIndex=1,tileCount
     do dimIndex=1,dimCount
-      write (logMsg,"(A,A,A,4(I0,A))") trim(llabel)//" ", &
+      write (logMsg,"(A,A,A,4(I0,A))") trim(llabel)//": ", &
         trim(gridName), &       
         " (tile,dim,minIndexPTile,maxIndexPTile)=(", &
         tileIndex,",",dimIndex,",", &
@@ -347,9 +364,9 @@ module NUOPC_LogUtility
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogFieldList:'
+      llabel = 'NUOPC_LogFieldList'
     endif
 
     do fIndex=1,size(fieldList)
@@ -382,9 +399,9 @@ module NUOPC_LogUtility
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogField:'
+      llabel = 'NUOPC_LogField'
     endif
 
     call ESMF_FieldGet(field,status=fieldStatus,name=fieldName,rc=rc)
@@ -431,33 +448,29 @@ module NUOPC_LogUtility
       value=fieldTransferAction, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    write (logMsg,"(A,A,(2A))") trim(llabel)//" ", &
+    write (logMsg,"(A,A,(2A))") trim(llabel)//": ", &
       trim(fieldName), &
       " status=",trim(fieldStatusStr)
-    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-      line=__LINE__, file=FILENAME)
-    write (logMsg,"(A,A,(2A))") trim(llabel)//" ", &
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A,(2A))") trim(llabel)//": ", &
       trim(fieldName), &
       " geomtype=",trim(fieldGeomtypeStr)
-    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-      line=__LINE__, file=FILENAME)
-    write (logMsg,"(A,A,(2A))") trim(llabel)//" ", &
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A,(2A))") trim(llabel)//": ", &
       trim(fieldName), &
       " consumerconn=",trim(fieldConsumerConn)
-    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-      line=__LINE__, file=FILENAME)
-    write (logMsg,"(A,A,2(2A))") trim(llabel)//" ", &
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A,2(2A))") trim(llabel)//": ", &
       trim(fieldName), &
       " transferOffer=",trim(fieldTransferOffer), &
       " transferAction=",trim(fieldTransferAction)
-    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-      line=__LINE__, file=FILENAME)
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
 
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFieldValue(field, label, rc)
+  subroutine NUOPC_LogFieldLclVal(field, label, rc)
     ! ARGUMENTS
     type(ESMF_Field), intent(in)            :: field
     character(len=*), intent(in), optional  :: label
@@ -471,22 +484,22 @@ module NUOPC_LogUtility
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = "NUOPC_LogFieldValue:"
+      llabel = "NUOPC_LogFieldLclVal"
     endif
 
     call ESMF_FieldGet(field,array=array,name=fieldName,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return    
 
-    call NUOPC_LogArrayValue(array,fieldName=fieldName,label=llabel,rc=rc)
+    call NUOPC_LogArrayLclVal(array,fieldName=fieldName,label=llabel,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogArrayValue(array, fieldName, label, rc)
+  subroutine NUOPC_LogArrayLclVal(array, fieldName, label, rc)
     ! ARGUMENTS
     type(ESMF_Array), intent(in)            :: array
     character(len=*), intent(in), optional  :: fieldName
@@ -513,9 +526,9 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = "NUOPC_LogArrayValue:"
+      llabel = "NUOPC_LogArrayLclVal"
     endif
 
     call ESMF_ArrayGet(array, typekind=typekind,rank=rank, rc=rc)
@@ -525,104 +538,104 @@ module NUOPC_LogUtility
       if (rank == 1) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_I4_1D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_I4_1D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_I4_1D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 2) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_I4_2D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_I4_2D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_I4_2D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 3) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_I4_3D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_I4_3D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_I4_3D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       else
         call ESMF_LogWrite(trim(llabel)//" rank out of log utility range.", &
-          ESMF_LOGMSG_INFO,line=__LINE__, file=FILENAME)
+          ESMF_LOGMSG_INFO)
       endif
     elseif (typekind == ESMF_TYPEKIND_I8) then
       if (rank == 1) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_I8_1D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_I8_1D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_I8_1D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 2) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_I8_2D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_I8_2D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_I8_2D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 3) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_I8_3D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_I8_3D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_I8_3D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       else
         call ESMF_LogWrite(trim(llabel)//" rank out of log uttility range.", &
-          ESMF_LOGMSG_INFO,line=__LINE__, file=FILENAME)
+          ESMF_LOGMSG_INFO)
       endif
     elseif (typekind == ESMF_TYPEKIND_R4) then
       if (rank == 1) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_R4_1D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_R4_1D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_R4_1D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 2) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_R4_2D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_R4_2D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_R4_2D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 3) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_R4_3D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_R4_3D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_R4_3D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       else
         call ESMF_LogWrite(trim(llabel)//" rank out of log utility range.", &
-          ESMF_LOGMSG_INFO,line=__LINE__, file=FILENAME)
+          ESMF_LOGMSG_INFO)
       endif
     elseif (typekind == ESMF_TYPEKIND_R8) then
       if (rank == 1) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_R8_1D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_R8_1D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_R8_1D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 2) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_R8_2D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_R8_2D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_R8_2D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif (rank == 3) then
         call ESMF_ArrayGet(array, farrayPtr=dataPtr_R8_3D, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call NUOPC_LogFarrayValue(dataPtr_R8_3D, fieldName=trim(fieldName), &
+        call NUOPC_LogFarrayLclVal(dataPtr_R8_3D, fieldName=fieldName, &
           label=trim(llabel), rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       else
         call ESMF_LogWrite(trim(llabel)//" rank out of log utility range.", &
-          ESMF_LOGMSG_INFO,line=__LINE__, file=FILENAME)
+          ESMF_LOGMSG_INFO)
       endif
     else
       call ESMF_LogWrite(trim(llabel)//" typekind out of log utility range.", &
-        ESMF_LOGMSG_INFO,line=__LINE__, file=FILENAME)
+        ESMF_LOGMSG_INFO)
     endif
 
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_I41D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_I41D(farray, fieldName, label, rc)
     ! ARGUMENTS
     integer(ESMF_KIND_I4),intent(in)           :: farray(:)
     character(len=*), intent(in), optional     :: fieldName
@@ -636,16 +649,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -663,7 +672,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_I42D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_I42D(farray, fieldName, label, rc)
     ! ARGUMENTS
     integer(ESMF_KIND_I4),intent(in)           :: farray(:,:)
     character(len=*), intent(in), optional     :: fieldName
@@ -677,16 +686,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -704,7 +709,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_I43D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_I43D(farray, fieldName, label, rc)
     ! ARGUMENTS
     integer(ESMF_KIND_I4),intent(in)           :: farray(:,:,:)
     character(len=*), intent(in), optional     :: fieldName
@@ -718,16 +723,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -745,7 +746,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_I81D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_I81D(farray, fieldName, label, rc)
     ! ARGUMENTS
     integer(ESMF_KIND_I8),intent(in)           :: farray(:)
     character(len=*), intent(in), optional     :: fieldName
@@ -759,16 +760,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -786,7 +783,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_I82D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_I82D(farray, fieldName, label, rc)
     ! ARGUMENTS
     integer(ESMF_KIND_I8),intent(in)           :: farray(:,:)
     character(len=*), intent(in), optional     :: fieldName
@@ -800,16 +797,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -827,7 +820,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_I83D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_I83D(farray, fieldName, label, rc)
     ! ARGUMENTS
     integer(ESMF_KIND_I8),intent(in)           :: farray(:,:,:)
     character(len=*), intent(in), optional     :: fieldName
@@ -841,16 +834,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue:"//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -868,7 +857,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_R41D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_R41D(farray, fieldName, label, rc)
     ! ARGUMENTS
     real(ESMF_KIND_R4),intent(in)           :: farray(:)
     character(len=*), intent(in), optional  :: fieldName
@@ -882,16 +871,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -909,7 +894,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_R42D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_R42D(farray, fieldName, label, rc)
     ! ARGUMENTS
     real(ESMF_KIND_R4),intent(in)           :: farray(:,:)
     character(len=*), intent(in), optional  :: fieldName
@@ -923,16 +908,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -950,7 +931,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_R43D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_R43D(farray, fieldName, label, rc)
     ! ARGUMENTS
     real(ESMF_KIND_R4),intent(in)           :: farray(:,:,:)
     character(len=*), intent(in), optional  :: fieldName
@@ -964,16 +945,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -991,7 +968,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_R81D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_R81D(farray, fieldName, label, rc)
     ! ARGUMENTS
     real(ESMF_KIND_R8),intent(in)           :: farray(:)
     character(len=*), intent(in), optional  :: fieldName
@@ -1005,16 +982,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -1032,7 +1005,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_R82D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_R82D(farray, fieldName, label, rc)
     ! ARGUMENTS
     real(ESMF_KIND_R8),intent(in)           :: farray(:,:)
     character(len=*), intent(in), optional  :: fieldName
@@ -1041,21 +1014,17 @@ module NUOPC_LogUtility
 
     ! LOCAL VARIABLES
     character(len=64)          :: llabel
-    character(len=ESMF_MAXSTR) :: logMsg
+    character(len=ESMF_MAXSTR)  :: logMsg
 
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -1073,7 +1042,7 @@ module NUOPC_LogUtility
 
   !-----------------------------------------------------------------------------
 
-  subroutine NUOPC_LogFarrayValue_R83D(farray, fieldName, label, rc)
+  subroutine NUOPC_LogFarrayLclVal_R83D(farray, fieldName, label, rc)
     ! ARGUMENTS
     real(ESMF_KIND_R8),intent(in)           :: farray(:,:,:)
     character(len=*), intent(in), optional  :: fieldName
@@ -1087,16 +1056,12 @@ module NUOPC_LogUtility
     if(present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      if (present(fieldName)) then
-        llabel = trim(label)//" "//trim(fieldName)
-      else
-        llabel = label
-      endif
+      llabel = trim(label)
     else
       if (present(fieldName)) then
-        llabel = "NUOPC_LogFarrayValue: "//trim(fieldName)
+        llabel = "NUOPC_LogFarrayLclVal"//" "//trim(fieldName)
       else
-        llabel = "NUOPC_LogFarrayValue:"
+        llabel = "NUOPC_LogFarrayLclVal"
       endif
     endif
 
@@ -1130,9 +1095,9 @@ module NUOPC_LogUtility
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (present(label)) then
-      llabel = label
+      llabel = trim(label)
     else
-      llabel = 'NUOPC_LogCplList:'
+      llabel = 'NUOPC_LogCplList'
     endif
 
     ! query the CplComp for info
@@ -1154,21 +1119,19 @@ module NUOPC_LogUtility
         rc=rc)
       if (ESMF_STDERRORCHECK(rc)) return
    else
-     write (logMsg,"(A,A,A)") trim(llabel)//" ", &
+     write (logMsg,"(A,A,A)") trim(llabel)//": ", &
        trim(name), &
        " CplList is empty."
-     call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-        line=__LINE__, file=FILENAME)
+     call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
    endif
 
     ! main loop over all entries in the cplList
     do cIndex=1, cplListSize
-      write (logMsg,"(A,A,(A,I0,A,I0,A),A)") trim(llabel)//" ", &
+      write (logMsg,"(A,A,(A,I0,A,I0,A),A)") trim(llabel)//": ", &
         trim(name), &
         " CplListItem(",cIndex, " of ", cplListSize, ")=", &
         trim(cplList(cIndex))
-      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO, &
-        line=__LINE__, file=FILENAME)
+      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
     enddo
 
     ! clean-up

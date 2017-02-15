@@ -1,8 +1,8 @@
 #define ESMF_STDERRORCHECK(rc) ESMF_LogFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)
-#define FILENAME "NUOPC_CopyUtility.F90"
-#define MODNAME "NUOPC_CopyUtility"
+#define FILENAME "beta_NUOPC_Copy.F90"
+#define MODNAME "beta_NUOPC_Copy"
 
-module NUOPC_CopyUtility
+module beta_NUOPC_Copy
   use ESMF
   use NUOPC
 

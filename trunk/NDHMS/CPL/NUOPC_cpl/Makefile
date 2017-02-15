@@ -13,6 +13,13 @@ $(error Environment variable ESMFMKFILE was not set.)
 endif
 include $(ESMFMKFILE)
 
+# single/double precision
+ifeq ($(BUILD_PREC),r4)
+override ESMF_F90COMPILECPPFLAGS += -DREAL4
+else
+override ESMF_F90COMPILECPPFLAGS += -DREAL8
+endif
+
 # ##############
 # Local Variable
 # ##############
@@ -21,6 +28,8 @@ HR="============================================================================
 ifndef WRFHYDRODIR
   WRFHYDRODIR=$(shell dirname $(shell dirname $(shell pwd)))
 endif
+
+include $(WRFHYDRODIR)/macros
 
 WRFHYDRO_DIR=$(WRFHYDRODIR)
 WRFHYDRO_TDIR=$(notdir $(WRFHYDRO_DIR))
@@ -97,13 +106,13 @@ WRFHYDRO_F90COMPILEPATHS =-I$(WRFHYDRO_DIR)/$(WRFHYDRO_MPPDIR) -I$(WRFHYDRO_DIR)
 	@echo $(HR)
 	@echo "Compiling $@..."
 	@echo
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(WRFHYDRO_F90COMPILEPATHS) $(ESMF_F90COMPILEFREENOCPP) $<
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(WRFHYDRO_F90COMPILEPATHS) $(ESMF_F90COMPILEFREENOCPP) $(HYDRO_D) $<
 
 %.o : %.F90
 	@echo $(HR)
 	@echo "Compiling $@..."
 	@echo
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(WRFHYDRO_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) $<
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(WRFHYDRO_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) $(HYDRO_D) -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) $<
         
 # #####################################
 # Generate Local ESMF Makefile fragment
@@ -129,9 +138,9 @@ WRFHYDRO_F90COMPILEPATHS =-I$(WRFHYDRO_DIR)/$(WRFHYDRO_MPPDIR) -I$(WRFHYDRO_DIR)
 
 build_wrfhydro_nuopc: $(WRFHYDRONUOPC_FILES)
 
-$(WRFHYDRONUOPC_LIB): $(WRFHYDRO_LIB) wrfhydro_nuopc_cap.o wrfhydro_nuopc_gluecode.o \
-	NUOPC_CopyUtility.o NUOPC_FileReadUtility.o NUOPC_FileWriteUtility.o \
-	NUOPC_FillUtility.o NUOPC_LogUtility.o
+$(WRFHYDRONUOPC_LIB): $(WRFHYDRO_LIB) WRFHydro_NUOPC_Cap.o WRFHydro_NUOPC_Gluecode.o \
+	beta_NUOPC_Copy.o beta_NUOPC_FileRead.o beta_NUOPC_Auxiliary.o \
+	beta_NUOPC_Fill.o beta_NUOPC_Log.o beta_NUOPC_Base.o
 	@echo $(HR)
 	@echo "Copying static library $@..."
 	@echo
@@ -139,19 +148,22 @@ $(WRFHYDRONUOPC_LIB): $(WRFHYDRO_LIB) wrfhydro_nuopc_cap.o wrfhydro_nuopc_glueco
 	ar rc $@ *.o
 
 # Dependencies
-wrfhydro_nuopc.mod: wrfhydro_nuopc_cap.o
-wrfhydro_nuopc_gluecode.mod: wrfhydro_nuopc_gluecode.o
-NUOPC_CopyUtility.mod: NUOPC_CopyUtility.o
-NUOPC_FileReadUtility.mod: NUOPC_FileReadUtility.o
-NUOPC_FileWriteUtility.mod: NUOPC_FileWriteUtility.o
-NUOPC_FillUtility.mod: NUOPC_FillUtility.o
-NUOPC_LogUtility.mod: NUOPC_LogUtility.o
+wrfhydro_nuopc.mod: WRFHydro_NUOPC_Cap.o
+wrfhydro_nuopc_gluecode.mod: WRFHydro_NUOPC_Gluecode.o
+beta_NUOPC_Copy.mod: beta_NUOPC_Copy.o
+beta_NUOPC_FileRead.mod: beta_NUOPC_FileRead.o
+beta_NUOPC_Auxiliary.mod: beta_NUOPC_Auxiliary.o
+beta_NUOPC_Fill.mod: beta_NUOPC_Fill.o
+beta_NUOPC_Log.mod: beta_NUOPC_Log.o
+beta_NUOPC_Base.mod: beta_NUOPC_Base.o
 
-wrfhydro_nuopc_cap.o: wrfhydro_nuopc_gluecode.mod \
-	NUOPC_FillUtility.mod NUOPC_FileWriteUtility.mod \
-	NUOPC_LogUtility.mod
-wrfhydro_nuopc_gluecode.o: NUOPC_CopyUtility.mod \
-	NUOPC_LogUtility.mod NUOPC_FileReadUtility.mod \
+WRFHydro_NUOPC_Cap.o: wrfhydro_nuopc_gluecode.mod \
+	beta_NUOPC_Fill.mod beta_NUOPC_Auxiliary.mod \
+	beta_NUOPC_Log.mod beta_NUOPC_Base.mod \
+	WRFHydro_NUOPC_Macros.h
+WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.mod \
+	beta_NUOPC_Log.mod beta_NUOPC_FileRead.mod \
+	WRFHydro_NUOPC_Macros.h \
 	$(WRFHYDRO_FILES)
 
 # ###########
