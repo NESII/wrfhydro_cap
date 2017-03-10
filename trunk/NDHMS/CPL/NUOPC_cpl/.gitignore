@@ -2,4 +2,4 @@
 *.mk
 *.mod
 *.o
-VERSION
+version

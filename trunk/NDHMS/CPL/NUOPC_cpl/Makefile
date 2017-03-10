@@ -4,6 +4,15 @@
 # --- WRF-HYDRO ESMF component.
 #
 
+# ###############
+# Local Variables
+# ###############
+
+HR    := ========================================
+HR    := $(HR)$(HR)
+COMMA := ,
+DIR   := $(CURDIR)
+
 # ###########################
 # Include ESMFMKFILE fragment
 # ###########################
@@ -13,76 +22,116 @@ $(error Environment variable ESMFMKFILE was not set.)
 endif
 include $(ESMFMKFILE)
 
-# single/double precision
+# #########################
+# Determine Build Precision
+# #########################
+
 ifeq ($(BUILD_PREC),r4)
 override ESMF_F90COMPILECPPFLAGS += -DREAL4
 else
 override ESMF_F90COMPILECPPFLAGS += -DREAL8
 endif
 
-# ##############
-# Local Variable
-# ##############
-HR="================================================================================"
+# ###########################
+# Determine Installation Path
+# ###########################
 
-ifndef WRFHYDRODIR
-  WRFHYDRODIR=$(shell dirname $(shell dirname $(shell pwd)))
+ifndef DESTDIR
+DESTDIR  := $(DIR)
 endif
 
-include $(WRFHYDRODIR)/macros
+ifndef INSTDIR
+INSTDIR  := WRFHYDRO_$(shell date '+%Y-%m-%d-%H-%M-%S')
+endif
 
-WRFHYDRO_DIR=$(WRFHYDRODIR)
-WRFHYDRO_TDIR=$(notdir $(WRFHYDRO_DIR))
-WRFHYDRO_LIBDIR=lib
-WRFHYDRO_MODDIR=mod
-WRFHYDRO_MPPDIR=MPP
-
-WRFHYDRO_LIB=libHYDRO.a
-WRFHYDRO_MPPMODS=module_mpp_land.mod \
-	module_cpl_land.mod
-WRFHYDRO_MODS=module_hydro_drv.mod \
-	module_rt_data.mod \
-	module_namelist.mod \
-	module_hydro_io
-WRFHYDRO_FILES=$(addprefix $(WRFHYDRO_DIR)/$(WRFHYDRO_LIBDIR)/,$(WRFHYDRO_LIB)) \
-	$(addprefix $(WRFHYDRO_DIR)/$(WRFHYDRO_MPPDIR)/,$(WRFHYDRO_MPPMODS)) \
-	$(addprefix $(WRFHYDRO_DIR)/$(WRFHYDRO_MODDIR)/,$(WRFHYDRO_MODS))
-
-WRFHYDRONUOPC_DIR=$(shell pwd)
-WRFHYDRONUOPC_TDIR=$(notdir $(WRFHYDRONUOPC_DIR))
-
-WRFHYDRONUOPC_LIB=libwrfhydro_nuopc.a
-WRFHYDRONUOPC_MK=wrfhydro.mk
-WRFHYDRONUOPC_DEP_FRONT=wrfhydro_nuopc
-WRFHYDRONUOPC_MODS=wrfhydro_nuopc.mod
-WRFHYDRONUOPC_FILES= $(WRFHYDRONUOPC_MK) \
-	$(WRFHYDRONUOPC_LIB) \
-	$(WRFHYDRONUOPC_MODS)
-
-# ########
-# Make all
-# ########
-all: build_wrfhydro_nuopc
+INSTPATH := $(abspath $(DESTDIR)/$(INSTDIR))
 
 # ###############
-# Build WRF-Hydro
+# Model Variables
 # ###############
-$(WRFHYDRO_FILES):
+
+MODEL_DIR    := $(abspath $(DIR)/../..)
+MODEL_LIBDIR := $(abspath $(MODEL_DIR)/lib)
+MODEL_MODDIR := $(abspath $(MODEL_DIR)/mod)
+MODEL_MPPDIR := $(abspath $(MODEL_DIR)/MPP)
+MODEL_LIB    := $(abspath $(MODEL_LIBDIR)/libHYDRO.a)
+MODEL_MK     := $(abspath $(MODEL_DIR)/Makefile.comm)
+MODEL_MKINC  := $(abspath $(MODEL_DIR)/macros)
+MODEL_MODS   := $(abspath $(MODEL_MPPDIR)/module_mpp_land.mod)
+MODEL_MODS   += $(abspath $(MODEL_MPPDIR)/module_cpl_land.mod)
+MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_hydro_drv.mod)
+MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_rt_data.mod)
+MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_namelist.mod)
+MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_hydro_io.mod)
+MODEL_FILES  := $(MODEL_LIB) $(MODEL_MODS)
+
+# #############
+# Cap Variables
+# #############
+
+CAP_DIR       := $(abspath $(DIR))
+CAP_LIB       := libwrfhydro_nuopc.a
+CAP_MK        := wrfhydro.mk
+CAP_DEP_FRONT := wrfhydro_nuopc
+CAP_VERS      := version
+CAP_OBJS      := WRFHydro_NUOPC_Cap.o
+CAP_OBJS      += WRFHydro_NUOPC_Gluecode.o
+CAP_OBJS      += beta_NUOPC_Copy.o
+CAP_OBJS      += beta_NUOPC_FileRead.o
+CAP_OBJS      += beta_NUOPC_Auxiliary.o
+CAP_OBJS      += beta_NUOPC_Fill.o
+CAP_OBJS      += beta_NUOPC_Log.o
+CAP_OBJS      += beta_NUOPC_Base.o
+CAP_MOD       := wrfhydro_nuopc.mod
+CAP_FILES     := $(CAP_LIB) $(CAP_MOD)
+
+# ###############################
+# Include Model Makefile Fragment
+# ###############################
+
+include $(MODEL_MKINC)
+ESMF_F90COMPILEPATHS    += -I$(MODEL_MODDIR)
+ESMF_F90COMPILEPATHS    += -I$(MODEL_MPPDIR)
+ESMF_F90COMPILECPPFLAGS += $(HYDRO_D)
+
+ifeq ($(DEBUG),on)
+ESMF_F90COMPILEOPTS     += -g -traceback
+ESMF_CXXCOMPILEOPTS     += -g -traceback
+ESMF_F90COMPILECPPFLAGS += -DDEBUG
+ESMF_CXXCOMPILECPPFLAGS += -DDEBUG
+endif
+
+
+# #######################
+# Primary Makefile Target
+# #######################
+.PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model
+
+nuopc: $(CAP_FILES) nuopcinstall
+
+# ############
+# Dependencies
+# ############
+
+WRFHydro_NUOPC_Cap.o: WRFHydro_NUOPC_Gluecode.o \
+        beta_NUOPC_Fill.o beta_NUOPC_Auxiliary.o \
+        beta_NUOPC_Log.o beta_NUOPC_Base.o \
+        WRFHydro_NUOPC_Macros.h
+WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.o \
+        beta_NUOPC_Log.o beta_NUOPC_FileRead.o \
+        WRFHydro_NUOPC_Macros.h \
+        $(MODEL_FILES)
+
+# ###############
+# Build Model
+# ###############
+$(MODEL_FILES):
 	@echo $(HR)
-	@echo "Building WRF-Hydro..."
+	@echo "Building Model..."
 	@echo $@
 	@echo
-	@if [ -z "$(WRF_HYDRO)" ]; then \
-	echo "WRF_HYDRO environment variable is not defined."; \
-	exit 1; fi;
-	@echo "WRF_HYDRO=$(WRF_HYDRO)"
-	@echo
-	$(call checkdir, $(WRFHYDRO_DIR))
-	$(call checkfile, $(WRFHYDRO_DIR)/macros)
-	(cd $(WRFHYDRO_DIR); make -f Makefile.comm)
-	
-$(WRFHYDRO_LIB): $(addprefix $(WRFHYDRO_DIR)/$(WRFHYDRO_LIBDIR)/,$(WRFHYDRO_LIB))
-	cp $^ $@
+	$(call checkdir, $(MODEL_DIR))
+	(cd $(MODEL_DIR); make -f Makefile.comm)
 	
 # ##############
 # Build Settings
@@ -91,7 +140,7 @@ $(WRFHYDRO_LIB): $(addprefix $(WRFHYDRO_DIR)/$(WRFHYDRO_LIBDIR)/,$(WRFHYDRO_LIB)
 .SUFFIXES: 
 .SUFFIXES: .c .C .f90 .F90 .F .f
 
-WRFHYDRO_F90COMPILEPATHS =-I$(WRFHYDRO_DIR)/$(WRFHYDRO_MPPDIR) -I$(WRFHYDRO_DIR)/$(WRFHYDRO_MODDIR)
+MODEL_F90COMPILEPATHS =-I$(MODEL_DIR)/$(MODEL_MPPDIR) -I$(MODEL_DIR)/$(MODEL_MODDIR)
 
 .F:
 	@echo "Must have an explicit rule for" $*
@@ -106,69 +155,87 @@ WRFHYDRO_F90COMPILEPATHS =-I$(WRFHYDRO_DIR)/$(WRFHYDRO_MPPDIR) -I$(WRFHYDRO_DIR)
 	@echo $(HR)
 	@echo "Compiling $@..."
 	@echo
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(WRFHYDRO_F90COMPILEPATHS) $(ESMF_F90COMPILEFREENOCPP) $(HYDRO_D) $<
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(ESMF_F90COMPILEFREENOCPP) $<
 
 %.o : %.F90
 	@echo $(HR)
 	@echo "Compiling $@..."
 	@echo
-	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(WRFHYDRO_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) $(HYDRO_D) -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) $<
+	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) $<
         
-# #####################################
-# Generate Local ESMF Makefile fragment
-# #####################################
-%.mk :
-	@echo $(HR)	
-	@echo "Generating WRF-Hydro Makefile fragment $@"
-	@echo
-	@echo "# ESMF self-describing build dependency makefile fragment" > $@
-	@echo >> $@
-	@echo "ESMF_DEP_FRONT     = $(WRFHYDRONUOPC_DEP_FRONT)"                  >> $@
-	@echo "ESMF_DEP_INCPATH   = $(WRFHYDRONUOPC_DIR)"                  >> $@
-	@echo "ESMF_DEP_CMPL_OBJS = $(WRFHYDRONUOPC_DIR)/$(WRFHYDRONUOPC_LIB)" >> $@
-	@echo "ESMF_DEP_LINK_OBJS = $(WRFHYDRONUOPC_DIR)/$(WRFHYDRONUOPC_LIB)" >> $@
-	@echo "ESMF_DEP_SHRD_PATH = "                       >> $@
-	@echo "ESMF_DEP_SHRD_LIBS = "                       >> $@
-
 # #####################
 # Build NUOPC Component
 # #####################
 
-.PHONY: wrfhydro_nuopc clean nuopcinstall
-
-build_wrfhydro_nuopc: $(WRFHYDRONUOPC_FILES)
-
-$(WRFHYDRONUOPC_LIB): $(WRFHYDRO_LIB) WRFHydro_NUOPC_Cap.o WRFHydro_NUOPC_Gluecode.o \
-	beta_NUOPC_Copy.o beta_NUOPC_FileRead.o beta_NUOPC_Auxiliary.o \
-	beta_NUOPC_Fill.o beta_NUOPC_Log.o beta_NUOPC_Base.o
+$(CAP_LIB): $(MODEL_LIB) $(CAP_OBJS)
 	@echo $(HR)
-	@echo "Copying static library $@..."
+	@echo "Creating static library $@..."
 	@echo
-	mv -f $(WRFHYDRO_LIB) $@
-	ar rc $@ *.o
+	ar cruT $@ $^
 
-# Dependencies
-wrfhydro_nuopc.mod: WRFHydro_NUOPC_Cap.o
-wrfhydro_nuopc_gluecode.mod: WRFHydro_NUOPC_Gluecode.o
-beta_NUOPC_Copy.mod: beta_NUOPC_Copy.o
-beta_NUOPC_FileRead.mod: beta_NUOPC_FileRead.o
-beta_NUOPC_Auxiliary.mod: beta_NUOPC_Auxiliary.o
-beta_NUOPC_Fill.mod: beta_NUOPC_Fill.o
-beta_NUOPC_Log.mod: beta_NUOPC_Log.o
-beta_NUOPC_Base.mod: beta_NUOPC_Base.o
+# -----------------------------------------------------------------------------
+# Install Library, Modules, and Makefile Fragment
+# -----------------------------------------------------------------------------
 
-WRFHydro_NUOPC_Cap.o: wrfhydro_nuopc_gluecode.mod \
-	beta_NUOPC_Fill.mod beta_NUOPC_Auxiliary.mod \
-	beta_NUOPC_Log.mod beta_NUOPC_Base.mod \
-	WRFHydro_NUOPC_Macros.h
-WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.mod \
-	beta_NUOPC_Log.mod beta_NUOPC_FileRead.mod \
-	WRFHydro_NUOPC_Macros.h \
-	$(WRFHYDRO_FILES)
+nuopcinstall: $(INSTPATH) \
+  $(addprefix $(INSTPATH)/,$(CAP_MOD)) \
+  $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
+  $(addprefix $(INSTPATH)/,$(CAP_MK)) \
+  $(addprefix $(INSTPATH)/,$(CAP_VERS))
+
+$(INSTPATH):
+	@echo $(HR)
+	@echo "Creating Installation Directory $@"
+	@echo
+	@mkdir -p $(INSTPATH)
+
+$(addprefix $(INSTPATH)/,$(CAP_MOD)): $(CAP_MOD)
+	@echo $(HR)
+	@echo "Installing Module Files"
+	@echo
+	@cp $(CAP_MOD) $(INSTPATH)
+
+$(addprefix $(INSTPATH)/,$(CAP_LIB)): $(CAP_LIB)
+	@echo $(HR)
+	@echo
+	@echo "Installing Library File"
+	@cp $(CAP_LIB) $(INSTPATH)
+
+$(addprefix $(INSTPATH)/,$(CAP_MK)): 
+	@echo $(HR)
+	@echo "Generating NUOPC Makefile Fragment"
+	@echo
+	@echo "# ESMF self-describing build dependency makefile fragment" > $@
+	@echo "" >> $@
+	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $@
+	@echo "ESMF_DEP_INCPATH   = $(INSTPATH)" >> $@
+	@echo "ESMF_DEP_CMPL_OBJS = " >> $@
+	@echo "ESMF_DEP_LINK_OBJS = $(INSTPATH)/$(CAP_LIB)" >> $@
+	@echo "ESMF_DEP_SHRD_PATH = " >> $@
+	@echo "ESMF_DEP_SHRD_LIBS = " >> $@
+	@echo $(HR)
+
+$(addprefix $(INSTPATH)/,$(CAP_VERS)):
+	@echo $(HR)
+	@echo "Generating Version Information"
+	@echo
+	@echo "# NUOPC Cap Version" > $@
+	@if [ -d .svn ]; then \
+	  echo "SVN Repository" > $@; \
+	  svn info . | grep URL >> $@; \
+	  svn info . | grep "Last Changed Rev" >> $@; \
+	fi
+	@if [ -d `git rev-parse --git-dir` ]; then \
+	  echo "Git Repository" > $@; \
+	  git show . | grep -m 1 "commit " >> $@; \
+	  git show . | grep -m 1 "Author: " >> $@; \
+	  git show . | grep -m 1 "Date: " >> $@; \
+	fi
 
 # ###########
 # Check Build
 # ###########
+
 define checkfile
 	@if [ ! -e $(1) ]; then \
 	echo "File is missing:$(1)"; \
@@ -182,7 +249,7 @@ define checkdir
 	exit 1; fi;
 endef # blank line in checkdir is required
 
-check: check_esmf check_wrfhydro check_wrfhydro_nuopc
+check: check_esmf check_model check_cap
 
 # ##################
 # Check ESMF Version
@@ -199,87 +266,51 @@ check_esmf:
 	@echo "ESMF Version=$(ESMF_VERSION_STRING)"
 	
 
-# ###############
-# Check WRF-Hydro
-# ###############
+# ###########
+# Check Model
+# ###########
 
-check_wrfhydro:
+check_model:
 	@echo $(HR)
-	@echo "Checking for WRF-Hydro files..."
+	@echo "Checking for Model files..."
 	@echo
-	$(foreach FILENAME, $(WRFHYDRO_FILES), $(call checkfile, $(FILENAME)))
+	$(foreach FILENAME, $(MODEL_FILES), $(call checkfile, $(FILENAME)))
 
-# #####################
-# Check WRF-Hydro NUOPC
-# #####################
-check_wrfhydro_nuopc: 
+# #########
+# Check Cap
+# #########
+
+check_cap: 
 	@echo $(HR)
 	@echo "Checking for WRF-Hydro NUOPC files..."
 	@echo
-	$(foreach FILENAME, $(WRFHYDRONUOPC_FILES), $(call checkfile, $(FILENAME)))
+	$(foreach FILENAME, $(CAP_FILES), $(call checkfile, $(FILENAME)))
 
 # #########
 # Clean all
 # #########
-clean: clean_wrfhydro_nuopc clean_wrfhydro
 
-# ###############################
-# Clean WRF-HYDRO NUOPC Component
-# ###############################
-clean_wrfhydro_nuopc:
+nuopcclean: clean_cap clean_model
+
+# ##########
+# Clean  Cap
+# ##########
+
+clean_cap:
 	@echo $(HR)
-	@echo "Cleaning WRF-Hydro NUOPC build..."
+	@echo "Cleaning Cap build..."
 	@echo
-	rm -f *.o *.mod *.a *.mk VERSION
+	rm -f $(CAP_FILES) *.mod *.o *.a $(CAP_MK) $(CAP_VERS)
 
-# ###############
-# Clean WRF-Hydro
-# ###############
-clean_wrfhydro:
+# ###########
+# Clean Model
+# ###########
+
+clean_model:
 	@echo $(HR)
-	@echo "Cleaning WRF-Hydro build..."
+	@echo "Cleaning Model build..."
 	@echo ""
-	$(call checkdir, $(WRFHYDRO_DIR))
-	(cd $(WRFHYDRO_DIR); make -f Makefile.comm clean)
+	$(call checkdir, $(MODEL_DIR))
+	(cd $(MODEL_DIR); make -f $(MODEL_MK) clean)
 
-# #################################
-# Install WRF-HYDRO NUOPC Component
-# #################################
-
-ifndef DESTDIR
-DESTDIR := $(WRFHYDRONUOPC_DIR)
-endif
-
-INSTDATE := $(shell date '+%Y-%m-%d-%H-%M-%S')
-ifndef INSTDIR
-INSTDIR  := WRFHYDRO_$(INSTDATE)
-endif
-
-install:
-	@mkdir -p $(DESTDIR)/$(INSTDIR)
-	@cp $(WRFHYDRONUOPC_FILES) $(DESTDIR)/$(INSTDIR)
-	@echo "# ESMF self-describing build dependency makefile fragment" > $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo "ESMF_DEP_FRONT     = $(WRFHYDRONUOPC_DEP_FRONT)" >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo "ESMF_DEP_INCPATH   = $(DESTDIR)/$(INSTDIR)" >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo "ESMF_DEP_CMPL_OBJS = $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_LIB)" >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo "ESMF_DEP_LINK_OBJS = $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_LIB)" >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo "ESMF_DEP_SHRD_PATH = " >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-	@echo "ESMF_DEP_SHRD_LIBS = " >> $(DESTDIR)/$(INSTDIR)/$(WRFHYDRONUOPC_MK)
-
-	@touch VERSION
-	@if [ -d .svn ]; then \
-	  echo "SVN Repository" > VERSION; \
-	  svn info . | grep URL >> VERSION; \
-	  svn info . | grep "Last Changed Rev" >> VERSION; \
-	fi
-	@if [ -d .git ]; then \
-	  echo "Git Repository" > VERSION; \
-	  git show . | grep -m 1 "commit " >> VERSION; \
-	  git show . | grep -m 1 "Author: " >> VERSION; \
-	  git show . | grep -m 1 "Date: " >> VERSION; \
-	fi
-	@cp VERSION $(DESTDIR)/$(INSTDIR)/
-	@echo Installation into \"$(DESTDIR)/$(INSTDIR)\" complete!
-	@echo
 # ------------------------------------------------------------------------------
