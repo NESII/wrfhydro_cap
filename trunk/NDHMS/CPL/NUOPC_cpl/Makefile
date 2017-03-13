@@ -57,12 +57,14 @@ MODEL_MPPDIR := $(abspath $(MODEL_DIR)/MPP)
 MODEL_LIB    := $(abspath $(MODEL_LIBDIR)/libHYDRO.a)
 MODEL_MK     := $(abspath $(MODEL_DIR)/Makefile.comm)
 MODEL_MKINC  := $(abspath $(MODEL_DIR)/macros)
+
 MODEL_MODS   := $(abspath $(MODEL_MPPDIR)/module_mpp_land.mod)
 MODEL_MODS   += $(abspath $(MODEL_MPPDIR)/module_cpl_land.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_hydro_drv.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_rt_data.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_namelist.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_hydro_io.mod)
+
 MODEL_FILES  := $(MODEL_LIB) $(MODEL_MODS)
 
 # #############
@@ -71,9 +73,10 @@ MODEL_FILES  := $(MODEL_LIB) $(MODEL_MODS)
 
 CAP_DIR       := $(abspath $(DIR))
 CAP_LIB       := libwrfhydro_nuopc.a
-CAP_MK        := wrfhydro.mk
 CAP_DEP_FRONT := wrfhydro_nuopc
 CAP_VERS      := version
+CAP_MK        := wrfhydro.mk
+
 CAP_OBJS      := WRFHydro_NUOPC_Cap.o
 CAP_OBJS      += WRFHydro_NUOPC_Gluecode.o
 CAP_OBJS      += beta_NUOPC_Copy.o
@@ -82,8 +85,17 @@ CAP_OBJS      += beta_NUOPC_Auxiliary.o
 CAP_OBJS      += beta_NUOPC_Fill.o
 CAP_OBJS      += beta_NUOPC_Log.o
 CAP_OBJS      += beta_NUOPC_Base.o
-CAP_MOD       := wrfhydro_nuopc.mod
-CAP_FILES     := $(CAP_LIB) $(CAP_MOD)
+
+CAP_MODS      := wrfhydro_nuopc.mod
+CAP_MODS      += wrfhydro_nuopc_gluecode.mod
+CAP_MODS      += beta_nuopc_copy.mod
+CAP_MODS      += beta_nuopc_fileread.mod
+CAP_MODS      += beta_nuopc_auxiliary.mod
+CAP_MODS      += beta_nuopc_fill.mod
+CAP_MODS      += beta_nuopc_log.mod
+CAP_MODS      += beta_nuopc_base.mod
+
+CAP_FILES     := $(CAP_LIB) $(CAP_MODS) $(CAP_OBJS) $(CAP_MK) $(CAP_VERS)
 
 # ###############################
 # Include Model Makefile Fragment
@@ -125,13 +137,13 @@ WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.o \
 # ###############
 # Build Model
 # ###############
+
 $(MODEL_FILES):
 	@echo $(HR)
 	@echo "Building Model..."
-	@echo $@
 	@echo
 	$(call checkdir, $(MODEL_DIR))
-	(cd $(MODEL_DIR); make -f Makefile.comm)
+	(cd $(MODEL_DIR); make -f $(MODEL_MK))
 	
 # ##############
 # Build Settings
@@ -173,49 +185,7 @@ $(CAP_LIB): $(MODEL_LIB) $(CAP_OBJS)
 	@echo
 	ar cruT $@ $^
 
-# -----------------------------------------------------------------------------
-# Install Library, Modules, and Makefile Fragment
-# -----------------------------------------------------------------------------
-
-nuopcinstall: $(INSTPATH) \
-  $(addprefix $(INSTPATH)/,$(CAP_MOD)) \
-  $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
-  $(addprefix $(INSTPATH)/,$(CAP_MK)) \
-  $(addprefix $(INSTPATH)/,$(CAP_VERS))
-
-$(INSTPATH):
-	@echo $(HR)
-	@echo "Creating Installation Directory $@"
-	@echo
-	@mkdir -p $(INSTPATH)
-
-$(addprefix $(INSTPATH)/,$(CAP_MOD)): $(CAP_MOD)
-	@echo $(HR)
-	@echo "Installing Module Files"
-	@echo
-	@cp $(CAP_MOD) $(INSTPATH)
-
-$(addprefix $(INSTPATH)/,$(CAP_LIB)): $(CAP_LIB)
-	@echo $(HR)
-	@echo
-	@echo "Installing Library File"
-	@cp $(CAP_LIB) $(INSTPATH)
-
-$(addprefix $(INSTPATH)/,$(CAP_MK)): 
-	@echo $(HR)
-	@echo "Generating NUOPC Makefile Fragment"
-	@echo
-	@echo "# ESMF self-describing build dependency makefile fragment" > $@
-	@echo "" >> $@
-	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $@
-	@echo "ESMF_DEP_INCPATH   = $(INSTPATH)" >> $@
-	@echo "ESMF_DEP_CMPL_OBJS = " >> $@
-	@echo "ESMF_DEP_LINK_OBJS = $(INSTPATH)/$(CAP_LIB)" >> $@
-	@echo "ESMF_DEP_SHRD_PATH = " >> $@
-	@echo "ESMF_DEP_SHRD_LIBS = " >> $@
-	@echo $(HR)
-
-$(addprefix $(INSTPATH)/,$(CAP_VERS)):
+$(CAP_VERS):
 	@echo $(HR)
 	@echo "Generating Version Information"
 	@echo
@@ -231,6 +201,50 @@ $(addprefix $(INSTPATH)/,$(CAP_VERS)):
 	  git show . | grep -m 1 "Author: " >> $@; \
 	  git show . | grep -m 1 "Date: " >> $@; \
 	fi
+
+$(CAP_MK): 
+	@echo $(HR)
+	@echo "Generating NUOPC Makefile Fragment"
+	@echo
+	@echo "# ESMF self-describing build dependency makefile fragment" > $@
+	@echo "" >> $@
+	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $@
+	@echo "ESMF_DEP_INCPATH   = $(CAP_DIR)" >> $@
+	@echo "ESMF_DEP_CMPL_OBJS = " >> $@
+	@echo "ESMF_DEP_LINK_OBJS = $(CAP_DIR)/$(CAP_LIB)" >> $@
+	@echo "ESMF_DEP_SHRD_PATH = " >> $@
+	@echo "ESMF_DEP_SHRD_LIBS = " >> $@
+
+# -----------------------------------------------------------------------------
+# Install Library, Modules, and Makefile Fragment
+# -----------------------------------------------------------------------------
+
+nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
+ $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
+ $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
+ $(addprefix $(INSTPATH)/,$(CAP_VERS)) \
+ $(addprefix $(INSTPATH)/,$(CAP_MK))
+
+$(INSTPATH)/%:
+	@echo $(HR)
+	@echo "Installing $(notdir $@)"
+	@echo
+	@mkdir -p $(INSTPATH)
+	cp $(notdir $@) $@
+
+$(INSTPATH)/$(CAP_MK): 
+	@echo $(HR)
+	@echo "Installing NUOPC Makefile Fragment"
+	@echo
+	@mkdir -p $(INSTPATH)
+	@echo "# ESMF self-describing build dependency makefile fragment" > $@
+	@echo "" >> $@
+	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $@
+	@echo "ESMF_DEP_INCPATH   = $(INSTPATH)" >> $@
+	@echo "ESMF_DEP_CMPL_OBJS = " >> $@
+	@echo "ESMF_DEP_LINK_OBJS = $(INSTPATH)/$(CAP_LIB)" >> $@
+	@echo "ESMF_DEP_SHRD_PATH = " >> $@
+	@echo "ESMF_DEP_SHRD_LIBS = " >> $@
 
 # ###########
 # Check Build
@@ -300,7 +314,7 @@ clean_cap:
 	@echo $(HR)
 	@echo "Cleaning Cap build..."
 	@echo
-	rm -f $(CAP_FILES) *.mod *.o *.a $(CAP_MK) $(CAP_VERS)
+	rm -f $(CAP_FILES)
 
 # ###########
 # Clean Model
