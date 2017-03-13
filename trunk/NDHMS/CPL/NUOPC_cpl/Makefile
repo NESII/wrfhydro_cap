@@ -55,7 +55,8 @@ MODEL_LIBDIR := $(abspath $(MODEL_DIR)/lib)
 MODEL_MODDIR := $(abspath $(MODEL_DIR)/mod)
 MODEL_MPPDIR := $(abspath $(MODEL_DIR)/MPP)
 MODEL_LIB    := $(abspath $(MODEL_LIBDIR)/libHYDRO.a)
-MODEL_MK     := $(abspath $(MODEL_DIR)/Makefile.comm)
+MODEL_MKDIR  := $(abspath $(MODEL_DIR))
+MODEL_MK     := $(abspath $(MODEL_MKDIR)/Makefile.comm)
 MODEL_MKINC  := $(abspath $(MODEL_DIR)/macros)
 
 MODEL_MODS   := $(abspath $(MODEL_MPPDIR)/module_mpp_land.mod)
@@ -95,56 +96,74 @@ CAP_MODS      += beta_nuopc_fill.mod
 CAP_MODS      += beta_nuopc_log.mod
 CAP_MODS      += beta_nuopc_base.mod
 
-CAP_FILES     := $(CAP_LIB) $(CAP_MODS) $(CAP_OBJS) $(CAP_MK) $(CAP_VERS)
+CAP_FILES     := $(CAP_OBJS) $(CAP_MODS) $(CAP_LIB) $(CAP_MK) $(CAP_VERS)
 
 # ###############################
 # Include Model Makefile Fragment
 # ###############################
 
 include $(MODEL_MKINC)
-ESMF_F90COMPILEPATHS    += -I$(MODEL_MODDIR)
-ESMF_F90COMPILEPATHS    += -I$(MODEL_MPPDIR)
-ESMF_F90COMPILECPPFLAGS += $(HYDRO_D)
+override ESMF_F90COMPILEPATHS    += -I$(MODEL_MODDIR)
+override ESMF_F90COMPILEPATHS    += -I$(MODEL_MPPDIR)
+override ESMF_F90COMPILECPPFLAGS += $(HYDRO_D)
 
 ifeq ($(DEBUG),on)
-ESMF_F90COMPILEOPTS     += -g -traceback
-ESMF_CXXCOMPILEOPTS     += -g -traceback
-ESMF_F90COMPILECPPFLAGS += -DDEBUG
-ESMF_CXXCOMPILECPPFLAGS += -DDEBUG
+override ESMF_F90COMPILEOPTS     += -g -traceback
+override ESMF_CXXCOMPILEOPTS     += -g -traceback
+override ESMF_F90COMPILECPPFLAGS += -DDEBUG
+override ESMF_CXXCOMPILECPPFLAGS += -DDEBUG
 endif
-
 
 # #######################
 # Primary Makefile Target
 # #######################
 .PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model
 
-nuopc: $(CAP_FILES) nuopcinstall
+nuopc: $(CAP_FILES)
+
+nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
+ $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
+ $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
+ $(addprefix $(INSTPATH)/,$(CAP_VERS)) \
+ $(addprefix $(INSTPATH)/,$(CAP_MK))
 
 # ############
 # Dependencies
 # ############
 
-WRFHydro_NUOPC_Cap.o: WRFHydro_NUOPC_Gluecode.o \
-        beta_NUOPC_Fill.o beta_NUOPC_Auxiliary.o \
-        beta_NUOPC_Log.o beta_NUOPC_Base.o \
-        WRFHydro_NUOPC_Macros.h
-WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.o \
-        beta_NUOPC_Log.o beta_NUOPC_FileRead.o \
-        WRFHydro_NUOPC_Macros.h \
-        $(MODEL_FILES)
+WRFHydro_NUOPC_Cap.o: wrfhydro_nuopc_gluecode.mod \
+ beta_nuopc_fill.mod beta_nuopc_auxiliary.mod \
+ beta_nuopc_log.mod beta_nuopc_base.mod \
+ WRFHydro_NUOPC_Macros.h
+WRFHydro_NUOPC_Gluecode.o: beta_nuopc_copy.mod \
+ beta_nuopc_log.mod beta_nuopc_fileread.mod \
+ WRFHydro_NUOPC_Macros.h \
+ $(MODEL_FILES)
+
+wrfhydro_nuopc.mod: WRFHydro_NUOPC_Cap.o
+wrfhydro_nuopc_gluecode.mod: WRFHydro_NUOPC_Gluecode.o
+beta_nuopc_copy.mod: beta_NUOPC_Copy.o
+beta_nuopc_fileread.mod: beta_NUOPC_FileRead.o
+beta_nuopc_auxiliary.mod: beta_NUOPC_Auxiliary.o
+beta_nuopc_fill.mod: beta_NUOPC_Fill.o
+beta_nuopc_log.mod: beta_NUOPC_Log.o
+beta_nuopc_base.mod: beta_NUOPC_Base.o
 
 # ###############
 # Build Model
 # ###############
 
-$(MODEL_FILES):
+build_model:
 	@echo $(HR)
 	@echo "Building Model..."
-	@echo
+	@echo ""
 	$(call checkdir, $(MODEL_DIR))
-	(cd $(MODEL_DIR); make -f $(MODEL_MK))
-	
+	(cd $(MODEL_MKDIR); make -f $(MODEL_MK))
+
+$(MODEL_MODS): build_model
+
+$(MODEL_LIB): build_model
+
 # ##############
 # Build Settings
 # ##############
@@ -162,7 +181,7 @@ MODEL_F90COMPILEPATHS =-I$(MODEL_DIR)/$(MODEL_MPPDIR) -I$(MODEL_DIR)/$(MODEL_MOD
 	@echo "Must have an explicit rule for" $*
 .c: 
 	@echo "Must have an explicit rule for" $*
-	
+
 %.o : %.f90
 	@echo $(HR)
 	@echo "Compiling $@..."
@@ -218,12 +237,6 @@ $(CAP_MK):
 # -----------------------------------------------------------------------------
 # Install Library, Modules, and Makefile Fragment
 # -----------------------------------------------------------------------------
-
-nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
- $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
- $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
- $(addprefix $(INSTPATH)/,$(CAP_VERS)) \
- $(addprefix $(INSTPATH)/,$(CAP_MK))
 
 $(INSTPATH)/%:
 	@echo $(HR)
