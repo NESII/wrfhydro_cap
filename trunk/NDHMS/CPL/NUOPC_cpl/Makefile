@@ -117,15 +117,15 @@ endif
 # #######################
 # Primary Makefile Target
 # #######################
-.PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model
+.PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model create_mk create_vers install_mk install_vers
 
-nuopc: $(CAP_FILES)
+nuopc: $(CAP_FILES) create_mk create_vers
 
 nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
  $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
  $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
- $(addprefix $(INSTPATH)/,$(CAP_VERS)) \
- $(addprefix $(INSTPATH)/,$(CAP_MK))
+ install_mk \
+ install_vers
 
 # ############
 # Dependencies
@@ -158,7 +158,7 @@ build_model:
 	@echo "Building Model..."
 	@echo ""
 	$(call checkdir, $(MODEL_DIR))
-	(cd $(MODEL_MKDIR); make -f $(MODEL_MK))
+	make -C $(MODEL_DIR) -f $(MODEL_MK)
 
 $(MODEL_MODS): build_model
 
@@ -202,37 +202,37 @@ $(CAP_LIB): $(MODEL_LIB) $(CAP_OBJS)
 	@echo $(HR)
 	@echo "Creating static library $@..."
 	@echo
-	ar cruT $@ $^
+	ar crT $@ $^
 
-$(CAP_VERS):
+create_vers:
 	@echo $(HR)
 	@echo "Generating Version Information"
 	@echo
-	@echo "# NUOPC Cap Version" > $@
+	@echo "# NUOPC Cap Version" > $(CAP_VERS)
 	@if [ -d .svn ]; then \
-	  echo "SVN Repository" > $@; \
-	  svn info . | grep URL >> $@; \
-	  svn info . | grep "Last Changed Rev" >> $@; \
+	  echo "SVN Repository" > $(CAP_VERS); \
+	  svn info . | grep URL >> $(CAP_VERS); \
+	  svn info . | grep "Last Changed Rev" >> $(CAP_VERS); \
 	fi
 	@if [ -d `git rev-parse --git-dir` ]; then \
-	  echo "Git Repository" > $@; \
-	  git show . | grep -m 1 "commit " >> $@; \
-	  git show . | grep -m 1 "Author: " >> $@; \
-	  git show . | grep -m 1 "Date: " >> $@; \
+	  echo "Git Repository" > $(CAP_VERS); \
+	  git show . | grep -m 1 "commit " >> $(CAP_VERS); \
+	  git show . | grep -m 1 "Author: " >> $(CAP_VERS); \
+	  git show . | grep -m 1 "Date: " >> $(CAP_VERS); \
 	fi
 
-$(CAP_MK): 
+create_mk: 
 	@echo $(HR)
 	@echo "Generating NUOPC Makefile Fragment"
 	@echo
-	@echo "# ESMF self-describing build dependency makefile fragment" > $@
-	@echo "" >> $@
-	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $@
-	@echo "ESMF_DEP_INCPATH   = $(CAP_DIR)" >> $@
-	@echo "ESMF_DEP_CMPL_OBJS = " >> $@
-	@echo "ESMF_DEP_LINK_OBJS = $(CAP_DIR)/$(CAP_LIB)" >> $@
-	@echo "ESMF_DEP_SHRD_PATH = " >> $@
-	@echo "ESMF_DEP_SHRD_LIBS = " >> $@
+	@echo "# ESMF self-describing build dependency makefile fragment" > $(CAP_MK)
+	@echo "" >> $(CAP_MK)
+	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $(CAP_MK)
+	@echo "ESMF_DEP_INCPATH   = $(CAP_DIR)" >> $(CAP_MK)
+	@echo "ESMF_DEP_CMPL_OBJS = " >> $(CAP_MK)
+	@echo "ESMF_DEP_LINK_OBJS = $(CAP_DIR)/$(CAP_LIB)" >> $(CAP_MK)
+	@echo "ESMF_DEP_SHRD_PATH = " >> $(CAP_MK)
+	@echo "ESMF_DEP_SHRD_LIBS = " >> $(CAP_MK)
 
 # -----------------------------------------------------------------------------
 # Install Library, Modules, and Makefile Fragment
@@ -245,19 +245,36 @@ $(INSTPATH)/%:
 	@mkdir -p $(INSTPATH)
 	cp $(notdir $@) $@
 
-$(INSTPATH)/$(CAP_MK): 
+install_vers:
+	@echo $(HR)
+	@echo "Generating Version Information"
+	@echo
+	@echo "# NUOPC Cap Version" > $(INSTPATH)/$(CAP_VERS)
+	@if [ -d .svn ]; then \
+	  echo "SVN Repository" > $(INSTPATH)/$(CAP_VERS); \
+	  svn info . | grep URL >> $(INSTPATH)/$(CAP_VERS); \
+	  svn info . | grep "Last Changed Rev" >> $(INSTPATH)/$(CAP_VERS); \
+	fi
+	@if [ -d `git rev-parse --git-dir` ]; then \
+	  echo "Git Repository" > $(INSTPATH)/$(CAP_VERS); \
+	  git show . | grep -m 1 "commit " >> $(INSTPATH)/$(CAP_VERS); \
+	  git show . | grep -m 1 "Author: " >> $(INSTPATH)/$(CAP_VERS); \
+	  git show . | grep -m 1 "Date: " >> $(INSTPATH)/$(CAP_VERS); \
+	fi
+
+install_mk: 
 	@echo $(HR)
 	@echo "Installing NUOPC Makefile Fragment"
 	@echo
 	@mkdir -p $(INSTPATH)
-	@echo "# ESMF self-describing build dependency makefile fragment" > $@
-	@echo "" >> $@
-	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $@
-	@echo "ESMF_DEP_INCPATH   = $(INSTPATH)" >> $@
-	@echo "ESMF_DEP_CMPL_OBJS = " >> $@
-	@echo "ESMF_DEP_LINK_OBJS = $(INSTPATH)/$(CAP_LIB)" >> $@
-	@echo "ESMF_DEP_SHRD_PATH = " >> $@
-	@echo "ESMF_DEP_SHRD_LIBS = " >> $@
+	@echo "# ESMF self-describing build dependency makefile fragment" > $(INSTPATH)/$(CAP_MK)
+	@echo "" >> $(INSTPATH)/$(CAP_MK)
+	@echo "ESMF_DEP_FRONT     = $(CAP_DEP_FRONT)" >> $(INSTPATH)/$(CAP_MK)
+	@echo "ESMF_DEP_INCPATH   = $(INSTPATH)" >> $(INSTPATH)/$(CAP_MK)
+	@echo "ESMF_DEP_CMPL_OBJS = " >> $(INSTPATH)/$(CAP_MK)
+	@echo "ESMF_DEP_LINK_OBJS = $(INSTPATH)/$(CAP_LIB)" >> $(INSTPATH)/$(CAP_MK)
+	@echo "ESMF_DEP_SHRD_PATH = " >> $(INSTPATH)/$(CAP_MK)
+	@echo "ESMF_DEP_SHRD_LIBS = " >> $(INSTPATH)/$(CAP_MK)
 
 # ###########
 # Check Build
@@ -338,6 +355,6 @@ clean_model:
 	@echo "Cleaning Model build..."
 	@echo ""
 	$(call checkdir, $(MODEL_DIR))
-	(cd $(MODEL_DIR); make -f $(MODEL_MK) clean)
+	make -C $(MODEL_DIR) -f $(MODEL_MK) clean
 
 # ------------------------------------------------------------------------------
