@@ -50,7 +50,11 @@ INSTPATH := $(abspath $(DESTDIR)/$(INSTDIR))
 # Model Variables
 # ###############
 
+ifndef WRFHYDRO_DIR
 MODEL_DIR    := $(abspath $(DIR)/../..)
+else
+MODEL_DIR    := $(abspath $(WRFHYDRO_DIR))
+endif
 MODEL_LIBDIR := $(abspath $(MODEL_DIR)/lib)
 MODEL_MODDIR := $(abspath $(MODEL_DIR)/mod)
 MODEL_MPPDIR := $(abspath $(MODEL_DIR)/MPP)
@@ -96,7 +100,7 @@ CAP_MODS      += beta_nuopc_fill.mod
 CAP_MODS      += beta_nuopc_log.mod
 CAP_MODS      += beta_nuopc_base.mod
 
-CAP_FILES     := $(CAP_OBJS) $(CAP_MODS) $(CAP_LIB) $(CAP_MK) $(CAP_VERS)
+CAP_FILES     := $(CAP_OBJS) $(CAP_MODS) $(CAP_LIB)
 
 # ###############################
 # Include Model Makefile Fragment
@@ -138,7 +142,7 @@ WRFHydro_NUOPC_Cap.o: wrfhydro_nuopc_gluecode.mod \
 WRFHydro_NUOPC_Gluecode.o: beta_nuopc_copy.mod \
  beta_nuopc_log.mod beta_nuopc_fileread.mod \
  WRFHydro_NUOPC_Macros.h \
- $(MODEL_FILES)
+ $(MODEL_MODS)
 
 wrfhydro_nuopc.mod: WRFHydro_NUOPC_Cap.o
 wrfhydro_nuopc_gluecode.mod: WRFHydro_NUOPC_Gluecode.o
@@ -344,7 +348,7 @@ clean_cap:
 	@echo $(HR)
 	@echo "Cleaning Cap build..."
 	@echo
-	rm -f $(CAP_FILES)
+	rm -f $(CAP_FILES) $(CAP_MK) $(CAP_VERS)
 
 # ###########
 # Clean Model
