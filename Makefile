@@ -125,7 +125,7 @@ endif
 
 nuopc: $(CAP_FILES) create_mk create_vers
 
-nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
+nuopcinstall: $(CAP_LIB) $(CAP_MODS) \
  $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
  $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
  install_mk \
@@ -206,7 +206,8 @@ $(CAP_LIB): $(MODEL_LIB) $(CAP_OBJS)
 	@echo $(HR)
 	@echo "Creating static library $@..."
 	@echo
-	ar crT $@ $^
+	cp $(MODEL_LIB) $@
+	ar cr $@ $(CAP_OBJS)
 
 create_vers:
 	@echo $(HR)
@@ -217,8 +218,7 @@ create_vers:
 	  echo "SVN Repository" > $(CAP_VERS); \
 	  svn info . | grep URL >> $(CAP_VERS); \
 	  svn info . | grep "Last Changed Rev" >> $(CAP_VERS); \
-	fi
-	@if [ -d `git rev-parse --git-dir` ]; then \
+	elif [ -d .git ]; then \
 	  echo "Git Repository" > $(CAP_VERS); \
 	  git show . | grep -m 1 "commit " >> $(CAP_VERS); \
 	  git show . | grep -m 1 "Author: " >> $(CAP_VERS); \
@@ -258,8 +258,7 @@ install_vers:
 	  echo "SVN Repository" > $(INSTPATH)/$(CAP_VERS); \
 	  svn info . | grep URL >> $(INSTPATH)/$(CAP_VERS); \
 	  svn info . | grep "Last Changed Rev" >> $(INSTPATH)/$(CAP_VERS); \
-	fi
-	@if [ -d `git rev-parse --git-dir` ]; then \
+	elif [ -d .git ]; then \
 	  echo "Git Repository" > $(INSTPATH)/$(CAP_VERS); \
 	  git show . | grep -m 1 "commit " >> $(INSTPATH)/$(CAP_VERS); \
 	  git show . | grep -m 1 "Author: " >> $(INSTPATH)/$(CAP_VERS); \
