@@ -206,6 +206,7 @@ $(CAP_LIB): $(MODEL_LIB) $(CAP_OBJS)
 	@echo $(HR)
 	@echo "Creating static library $@..."
 	@echo
+	$(call checkfile, $(MODEL_LIB))
 	cp $(MODEL_LIB) $@
 	ar cr $@ $(CAP_OBJS)
 
