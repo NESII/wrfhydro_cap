@@ -1,17 +1,233 @@
+!>
+!! @mainpage NCAR's WRF-Hydro NUOPC Cap
+!! @author Daniel Rosen (daniel.rosen@noaa.gov)
+!! @author ESMF Support (esmf_support@list.woc.noaa.gov)
+!! @date 03/14/2017 WRF-Hydro NUOPC Cap Added to GitHub
+!! @date 03/17/2017 Documentation Added
+!!
+!! @tableofcontents
+!!
+!! @section Overview Overview
+!!
+!! The Weather Research and Forecasting Hydrological (WRF-Hydro) model is a 
+!! hydrometerological forecasting model developed and maintained by the 
+!! National Center for Atmospheric Research (NCAR).  The WRF-Hydro cap wraps 
+!! the WRF-Hydro model with NUOPC compliant interfaces.  The result is a 
+!! WRF-Hydro model capable of coupling with other models using National 
+!! Unified Operational Prediction Capability (NUOPC).
+!!
+!! This page documents the technical design of the specialized NUOPC model and 
+!! the WRF-Hydro gluecode.  For generic NUOPC model documentation please see 
+!! the NUOPC reference manual: https://www.earthsystemcog.org/projects/nuopc/refmans.
+!!
+!!
+!! @section NuopcSpecialization NUOPC Model Specialized Entry Points
+!!
+!! This cap specializes the cap configuration, initialization, advertised
+!! fields, realized fields, data initialization, clock, run, and finalize.
+!!
+!! @subsection SetServices Set Services (Register Subroutines)
+!!
+!! Table summarizing the NUOPC specialized subroutines registered during
+!! [SetServices] (@ref WRFHYDRO_NUOPC::SetServices).  The "Phase" column says
+!! whether the subroutine is called during the initialization, run, or
+!! finalize part of the coupled system run.
+!!
+!! Phase  |     Cap Subroutine                                | Description
+!! -------|---------------------------------------------------|-------------------------------------------------------------
+!! Init   | [InitializeP0] (@ref WRFHYDRO_NUOPC::InitializeP0)     | Set the Initialize Phase Definition (IPD). Configure model
+!! Init   | [InitializeP1] (@ref WRFHYDRO_NUOPC::InitializeP1)     | Initialize model.  Advertize import and export fields
+!! Init   | [InitializeP3] (@ref WRFHYDRO_NUOPC::InitializeP3)     | Realize import and export fields
+!! Init   | [DataInitialize] (@ref WRFHYDRO_NUOPC::DataInitialize) | Initialize import and export data
+!! Init   | [SetClock] (@ref WRFHYDRO_NUOPC::SetClock)             | Set model clock during initialization
+!! Run    | [CheckImport] (@ref WRFHYDRO_NUOPC::CheckImport)       | Check timestamp on import data.
+!! Run    | [ModelAdvance] (@ref WRFHYDRO_NUOPC::ModelAdvance)     | Advances the model by a timestep
+!! Final  | [ModelFinalize] (@ref WRFHYDRO_NUOPC::ModelFinalize)   | Releases memory
+!!
+!!
+!! @section Initialize Initialize
+!!
+!! Description of the initialization phases and internal model calls.
+!! - [InitializeP0] (@ref WRFHYDRO_NUOPC::InitializeP0)
+!! - [InitializeP1] (@ref WRFHYDRO_NUOPC::InitializeP1)
+!! - [InitializeP3] (@ref WRFHYDRO_NUOPC::InitializeP3)
+!! - [DataInitialize] (@ref WRFHYDRO_NUOPC::DataInitialize)
+!! - [SetClock] (@ref WRFHYDRO_NUOPC::SetClock)
+!!
+!! @subsection InitializeP0 InitializeP0
+!!
+!! During initialize phase 0 the runtime configuration is read in from model
+!! attributes and the initialization phase definition version is set to
+!! IPDv03.
+!!
+!! @subsection InitializeP1 InitializeP1
+!!
+!! During initialize phase 1 the model is initialized and the import and
+!! export fields are advertised in a state labeled with the domain ID.
+!!
+!! @subsection InitializeP3 InitializeP3
+!!
+!! During initialize phase 3 import and export fields are realized if they are 
+!! connected through NUOPC. Realized fields are created on the WRF-Hydro grid. 
+!!
+!! @subsection DataInitialize DataInitialize
+!!
+!! During data initialize this cap checks the timestamp of all import fields
+!! dependent on a coupled model.  Once all dependent import fields have been
+!! initialized this cap is marked initalized.
+!!
+!! @subsection SetClock SetClock
+!!
+!! During set clock the cap creates a new clock using the timestep configured
+!! in te WRF-Hydro configuration file. The restart write time step is also 
+!! created and the restart write time accumulation tracker is reset to zero.
+!!
+!!
+!! @section Run Run
+!!
+!! Description of the run phase(s) and internal model calls.
+!! - [CheckImport] (@ref WRFHYDRO_NUOPC::CheckImport)
+!! - [ModelAdvance] (@ref WRFHYDRO_NUOPC::ModelAdvance)
+!!
+!! @subsection CheckImport CheckImport
+!!
+!! During check import the import data is checked to verify that it is at
+!! the beginning or end of the timestep.
+!!
+!! @subsection ModelAdvance ModelAdvance
+!!
+!! Calls WRF-Hydro advance for the configured domain.
+!!
+!!
+!! @section Finalize Finalize
+!!
+!! Description of the finalize phase and internal model calls.
+!! - [ModelFinalize] (@ref WRFHYDRO_NUOPC::ModelFinalize)
+!!
+!! @subsection ModelFinalize ModelFinalize
+!!
+!! During model finalize WRF-Hydro finalize subroutines are called and memory
+!! allocated during cap initialization is released.
+!!
+!!
+!! @section ModelConfiguration Model Configuration
+!!
+!! Custom model attributes are used to configure the model.
+!!
+!! Attribute         | Default         | Description
+!! ------------------|-----------------|-------------------------------------------------------------------------------------
+!! Verbosity         | VERBOSITY_LV2   | Verbosity levels are defined in WRFHYDRO_NUOPC_Macros.h
+!! DomainID          | 1               |
+!! RestartInterval   | NEVER           | Determine when to write NUOPC state restart files in seconds
+!! ConfigFile        | hydro.namelist  | Set the WRF-Hydro configuraion file
+!! dasConfigFile     | namelist.hrldas | Set the WRF-Hydro DAS configuration file
+!! WriteGrid         | FALSE           | Write a NetCDF file for the WRF-Hydro domain
+!! WriteImport       | FALSE           | Write a NetCDF file for the import state before model advance
+!! WriteExport       | FALSE           | Write a NetCDF file for the export state after model advance
+!! LogMemory         | FALSE           | Write memory statistics. (Not Implemented)
+!! TestFillImport    | FALSE           | Fill the import state with ESMF_FieldFill(sincos) for testing
+!! TestFillExport    | FALSE           | Fill the export state with ESMF_FieldFill(sincos) for testing
+!!
+!!
+!! @section ModelFields Model Fields
+!!
+!! The following tables list the import and export fields.
+!!
+!! @subsection ImportFields Import Fields
+!!
+!! Import fields are listed in the import_list parameter.
+!!
+!! Standard Name  | Units  | Model Variable  | Description                                | Notes
+!! ---------------|--------|-----------------|--------------------------------------------|--------------------------------------
+!! dummy_field_1  | Pa     | forcing_1       | field description for first import field   | |
+!! dummy_field_2  | kg     | forcing_2       | field description for second import field  | |
+!! dummy_field_3  | W m-2  | forcing_3       | field description for third import field   | field notes
+!!
+!! @subsection ExportField Export Fields
+!!
+!! Export fields are listed in the export_list parameter.
+!!
+!! Standard Name  | Units   | Model Variable  | Description                               | Notes
+!! ---------------|---------|-----------------|-------------------------------------------|---------------------------
+!! dummy_field_1  | m       | output_1        | field description for first export field  | field notes
+!! dummy_field_2  | kg      | output_2        | field description for second export field | |
+!! dummy_field_3  | m s-1   | output_3        | field description for third export field  | field notes
+!!
+!!
+!! @section MemoryManagement Memory Management
+!!
+!! Model configuration is stored in a custom internal state data type. A
+!! pointer to the custom internal state data type is stored in the component.
+!!
+!! The cap allocates new memory for each field.  This will be updated so that
+!! NUOPC fields directly access the WRF-Hydro field memory.
+!!
+!! @section IO Input and Output
+!!
+!! Cap diagnostic output is written to the ESMF PET Logs. Cap diagnostic
+!! output can be increased or decreased by setting the Verbosity attribute.
+!!
+!! NUOPC state restart write files are written depending on the
+!! RestartInterval attribute. If set to 0 then NUOPC state restart write files
+!! will never be written.
+!!
+!! WRF-Hydro diagnostics output is written to standard out. To increase the
+!! diagnostic output compile WRF-Hydro with -DHYDRO_D.
+!!
+!! WRF-Hydro writes several output files.  Please see the 
+!! [WRF-Hydro documentation] (https://www.ral.ucar.edu/projects/wrf_hydro).
+!!
+!! @section Dependencies Dependencies
+!!
+!! Dependencies
+!! - [ESMF v7.0.0+] (https://www.earthsystemcog.org/projects/esmf/) 
+!! - [NetCDF v4.3.0+] (http://www.unidata.ucar.edu/software/netcdf/docs/)
+!! - [NetCDF FORTRAN] (http://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html)
+!!
+!! @subsection ESMF ESMF
+!!
+!! See the [ESMF User's Guide] 
+!! (http://www.earthsystemmodeling.org/esmf_releases/public/last/ESMF_usrdoc). 
+!!
+!! @section BuildingAndInstalling Building and Installing
+!!
+!! Environment Variables
+!! - ESMFMKFILE
+!!
+!! NUOPC Makefile Targets
+!! - nuopc
+!! - nuopcinstall
+!! - nuopcclean
+!!
+!! The build system in [Makefile] (@ref Makefile) wraps the WRF-Hydro build 
+!! system and adds the nuopc, nuopcinstall, and nuopcclean targets. Before 
+!! building make sure to configure the internal model.
+!!
+!! To build and install into the current directory run:
+!!    $ make nuopc
+!!
+!! To install into an alternative directory run:
+!!    $ make nuopcinstall DESTDIR=<INSTALL_DIR> INSTDIR=<SUBDIR>
+!!
+!! To build with debugging information run:
+!!    $ make nuopc DEBUG=on
+!!
+!! @section Repository
+!! The WRF-Hydro NUOPC cap is maintained in a GitHub repository:
+!! https://github.com/NESII/wrfhydro_cap
+!!
+!! @section References
+!!
+!! - [WRF-Hydro] (https://www.ral.ucar.edu/projects/wrf_hydro) 
+!! - [ESPS] (https://www.earthsystemcog.org/projects/esps)
+!! - [ESMF] (https://www.earthsystemcog.org/projects/esmf)
+!! - [NUOPC] (https://www.earthsystemcog.org/projects/nuopc/)
+
 #define FILENAME "WRFHydro_NUOPC_Cap"
 #define MODNAME "WRFHydro_NUOPC"
 #include "WRFHydro_NUOPC_Macros.h"
 
 module WRFHydro_NUOPC
-! !MODULE: WRFHydro_NUOPC
-!
-! !DESCRIPTION:
-!   This modules creates a specialized the NUOPC_Model
-!   for WRFHYDRO.  This is also referred to as the NUOPC Cap.
-!
-! !REVISION HISTORY:
-!  13Oct15    Dan Rosen  Initial Specification
-!
   use ESMF
   use NUOPC
   use NUOPC_Model, &
@@ -80,7 +296,16 @@ module WRFHydro_NUOPC
     integer                    :: stat
     type(type_InternalState)   :: is
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     rc = ESMF_SUCCESS
+
+#ifdef DEBUG
+    call ESMF_LogSet(flush=.true., rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+#endif
 
     ! allocate memory for this internal state and set it in the component
     allocate(is%wrap, stat=stat)
@@ -127,6 +352,10 @@ module WRFHydro_NUOPC
       specRoutine=ModelFinalize, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -148,6 +377,10 @@ module WRFHydro_NUOPC
     type(type_InternalState)   :: is
     character(len=10)          :: value
     integer                    :: rstrtIntvl
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -300,6 +533,11 @@ module WRFHydro_NUOPC
       call InternalConfigLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -318,6 +556,10 @@ module WRFHydro_NUOPC
     type(type_InternalState)    :: is
     type(ESMF_VM)               :: vm
     integer                     :: fIndex
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -384,6 +626,11 @@ module WRFHydro_NUOPC
       call InternalConfigLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -404,6 +651,10 @@ module WRFHydro_NUOPC
     type(ESMF_Field)           :: field
     logical                    :: importConnected, exportConnected
     integer                    :: fIndex
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -447,7 +698,7 @@ module WRFHydro_NUOPC
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
         else
           field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
+            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_RX, rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 !         Create field with ungridded soil layer dimension
 !          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
@@ -486,7 +737,7 @@ module WRFHydro_NUOPC
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
         else
           field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
+            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_RX, rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 !         Create field with ungridded soil layer dimension
 !          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
@@ -526,6 +777,11 @@ module WRFHydro_NUOPC
       call InternalConfigLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -547,6 +803,10 @@ module WRFHydro_NUOPC
     type(ESMF_StateItem_Flag), allocatable :: itemTypeList(:)
     type(ESMF_Field)                       :: field
     integer                                :: stat
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -632,6 +892,11 @@ module WRFHydro_NUOPC
 !    if (is%wrap%verbosity >= VERBOSITY_LV3) call WRFHydro_FieldListLog(label=trim(cname))
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -649,6 +914,10 @@ module WRFHydro_NUOPC
     real(ESMF_KIND_R8)         :: dt
     type(ESMF_Clock)           :: modelClock
     type(ESMF_TimeInterval)    :: timestep
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -693,6 +962,11 @@ module WRFHydro_NUOPC
       call InternalClockLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -714,6 +988,10 @@ subroutine CheckImport(gcomp, rc)
     type(ESMF_Time)             :: modelStopTime
     logical                     :: allCurrTime
     logical                     :: allStopTime
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -753,6 +1031,11 @@ subroutine CheckImport(gcomp, rc)
 
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -775,6 +1058,10 @@ subroutine CheckImport(gcomp, rc)
     type(ESMF_TimeInterval)     :: modelTimeStep
     type(ESMF_TimeInterval)     :: timeStep
     character(len=64)           :: modelStopTimeStr
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -877,6 +1164,11 @@ subroutine CheckImport(gcomp, rc)
       call InternalClockLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -892,6 +1184,10 @@ subroutine CheckImport(gcomp, rc)
     character(ESMF_MAXSTR)     :: cname
     type(type_InternalState)   :: is
     integer                    :: stat
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     rc = ESMF_SUCCESS
 
@@ -917,6 +1213,10 @@ subroutine CheckImport(gcomp, rc)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
       msg='WRFHYDRO: Deallocation of internal state memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end subroutine
 
@@ -979,6 +1279,10 @@ subroutine CheckImport(gcomp, rc)
       call ESMF_LogWrite(trim(LogMsg), ESMF_LOGMSG_INFO)
     enddo
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -1038,6 +1342,10 @@ subroutine CheckImport(gcomp, rc)
         ' ',TRIM(WRFHydro_FieldList(fIndex)%stdName)
       call ESMF_LogWrite(trim(LogMsg), ESMF_LOGMSG_INFO)
     enddo
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end subroutine
 
@@ -1121,6 +1429,11 @@ subroutine CheckImport(gcomp, rc)
     write (logMsg, "(A,(A,A))") trim(label), &
       ": Mode=",trim(modeStr)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -1175,6 +1488,10 @@ subroutine CheckImport(gcomp, rc)
     write (logMsg, "(A,(A,A))") trim(label), &
       ": Timestep=",trim(timestepStr)
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end subroutine
 

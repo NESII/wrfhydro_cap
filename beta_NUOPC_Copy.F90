@@ -1,6 +1,6 @@
-#define ESMF_STDERRORCHECK(rc) ESMF_LogFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)
 #define FILENAME "beta_NUOPC_Copy.F90"
 #define MODNAME "beta_NUOPC_Copy"
+#define ESMF_STDERRORCHECK(rc) ESMF_LogFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)
 
 module beta_NUOPC_Copy
   use ESMF
@@ -93,11 +93,16 @@ module beta_NUOPC_Copy
   character(len=*),parameter :: NUOPC_COPY_FWD = 'from ESMF_Array to FORTRAN array'
   character(len=*),parameter :: NUOPC_COPY_BWD = 'from FORTRAN array to ESMF_Array'
 
-contains
+  !-----------------------------------------------------------------------------
+  contains
+  !-----------------------------------------------------------------------------
 
   !-----------------------------------------------------------------------------
   ! Copy ESMF Field to FORTRAN Array
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_I41D"
 
   subroutine NUOPC_CopyFieldToFarray_I41D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -109,6 +114,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array    
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -117,9 +126,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_I42D"
 
   subroutine NUOPC_CopyFieldToFarray_I42D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -131,6 +147,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -139,9 +159,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_I43D"
 
   subroutine NUOPC_CopyFieldToFarray_I43D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -153,6 +180,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -161,9 +192,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_I81D"
 
   subroutine NUOPC_CopyFieldToFarray_I81D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -175,6 +213,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -183,9 +225,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_I82D"
 
   subroutine NUOPC_CopyFieldToFarray_I82D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -197,6 +246,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -205,9 +258,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_I83D"
 
   subroutine NUOPC_CopyFieldToFarray_I83D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -219,6 +279,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -227,9 +291,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_R41D"
 
   subroutine NUOPC_CopyFieldToFarray_R41D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -241,6 +312,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -249,9 +324,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_R42D"
 
   subroutine NUOPC_CopyFieldToFarray_R42D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -263,6 +345,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -271,9 +357,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_R43D"
 
   subroutine NUOPC_CopyFieldToFarray_R43D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -285,6 +378,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -293,9 +390,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_R81D"
 
   subroutine NUOPC_CopyFieldToFarray_R81D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -307,6 +411,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -315,9 +423,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_R82D"
 
   subroutine NUOPC_CopyFieldToFarray_R82D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -329,6 +444,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -337,9 +456,16 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToFarray_R83D"
 
   subroutine NUOPC_CopyFieldToFarray_R83D(field,farray,localDe,rc)
    ! ARGUMENTS
@@ -351,6 +477,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -359,11 +489,18 @@ contains
     call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
   ! Copy FORTRAN Array to ESMF Field
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_I41D"
 
   subroutine NUOPC_CopyFarrayToField_I41D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -375,6 +512,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array    
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -383,9 +524,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_I42D"
 
   subroutine NUOPC_CopyFarrayToField_I42D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -397,6 +545,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -405,9 +557,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_I43D"
 
   subroutine NUOPC_CopyFarrayToField_I43D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -419,6 +578,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -427,9 +590,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_I81D"
 
   subroutine NUOPC_CopyFarrayToField_I81D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -441,6 +611,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -449,9 +623,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_I82D"
 
   subroutine NUOPC_CopyFarrayToField_I82D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -463,6 +644,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -471,9 +656,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_I83D"
 
   subroutine NUOPC_CopyFarrayToField_I83D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -485,6 +677,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -493,9 +689,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_R41D"
 
   subroutine NUOPC_CopyFarrayToField_R41D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -507,6 +710,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -515,9 +722,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_R42D"
 
   subroutine NUOPC_CopyFarrayToField_R42D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -529,6 +743,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -537,9 +755,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_R43D"
 
   subroutine NUOPC_CopyFarrayToField_R43D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -551,6 +776,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -559,9 +788,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_R81D"
 
   subroutine NUOPC_CopyFarrayToField_R81D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -573,6 +809,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -581,9 +821,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_R82D"
 
   subroutine NUOPC_CopyFarrayToField_R82D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -595,6 +842,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -603,9 +854,16 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToField_R83D"
 
   subroutine NUOPC_CopyFarrayToField_R83D(farray,field,localDe,rc)
    ! ARGUMENTS
@@ -617,6 +875,10 @@ contains
     ! LOCAL VARIABLES
     type(ESMF_Array)  :: array
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call ESMF_FieldGet(field,array=array,rc=rc)
@@ -625,11 +887,18 @@ contains
     call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
   ! Copy ESMF Array to FORTRAN Array.
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_I41D"
 
   subroutine NUOPC_CopyArrayToFarray_I41D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -638,14 +907,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_I42D"
 
   subroutine NUOPC_CopyArrayToFarray_I42D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -654,14 +934,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_I43D"
 
   subroutine NUOPC_CopyArrayToFarray_I43D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -670,14 +961,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_I81D"
 
   subroutine NUOPC_CopyArrayToFarray_I81D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -686,14 +988,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_I82D"
 
   subroutine NUOPC_CopyArrayToFarray_I82D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -702,14 +1015,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_I83D"
 
   subroutine NUOPC_CopyArrayToFarray_I83D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -718,14 +1042,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_R41D"
 
   subroutine NUOPC_CopyArrayToFarray_R41D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -734,14 +1069,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_R42D"
 
   subroutine NUOPC_CopyArrayToFarray_R42D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -750,14 +1096,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_R43D"
 
   subroutine NUOPC_CopyArrayToFarray_R43D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -766,14 +1123,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_R81D"
 
   subroutine NUOPC_CopyArrayToFarray_R81D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -782,14 +1150,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_R82D"
 
   subroutine NUOPC_CopyArrayToFarray_R82D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -798,14 +1177,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayToFarray_R83D"
 
   subroutine NUOPC_CopyArrayToFarray_R83D(array,farray,localDe,rc)
    ! ARGUMENTS
@@ -814,16 +1204,27 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end subroutine
 
   !-----------------------------------------------------------------------------
   ! Copy FORTRAN Array to ESMF Array
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_I41D"
 
   subroutine NUOPC_CopyFarrayToArray_I41D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -832,14 +1233,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_I42D"
 
   subroutine NUOPC_CopyFarrayToArray_I42D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -847,15 +1259,26 @@ contains
     integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:)
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
     
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_I43D"
 
   subroutine NUOPC_CopyFarrayToArray_I43D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -864,14 +1287,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_I81D"
 
   subroutine NUOPC_CopyFarrayToArray_I81D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -880,14 +1314,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_I82D"
 
   subroutine NUOPC_CopyFarrayToArray_I82D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -896,14 +1341,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_I83D"
 
   subroutine NUOPC_CopyFarrayToArray_I83D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -912,14 +1368,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_R41D"
 
   subroutine NUOPC_CopyFarrayToArray_R41D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -928,14 +1395,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_R42D"
 
   subroutine NUOPC_CopyFarrayToArray_R42D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -944,14 +1422,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_R43D"
 
   subroutine NUOPC_CopyFarrayToArray_R43D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -960,14 +1449,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_R81D"
 
   subroutine NUOPC_CopyFarrayToArray_R81D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -976,14 +1476,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_R82D"
 
   subroutine NUOPC_CopyFarrayToArray_R82D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -992,14 +1503,25 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyFarrayToArray_R83D"
 
   subroutine NUOPC_CopyFarrayToArray_R83D(farray,array,localDe,rc)
    ! ARGUMENTS
@@ -1008,16 +1530,27 @@ contains
     integer,intent(in),optional                 :: localDe
     integer, intent(out),optional               :: rc
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end subroutine
 
   !-----------------------------------------------------------------------------
   ! Copy ESMF Array to/from FORTRAN Array - Direction controlled by reverse
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_I41D"
 
   subroutine NUOPC_CopyArrayFarray_I41D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1034,6 +1567,10 @@ contains
     integer(ESMF_KIND_I4),pointer  :: srcarray(:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1082,9 +1619,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_I42D"
 
   subroutine NUOPC_CopyArrayFarray_I42D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1101,6 +1645,10 @@ contains
     integer(ESMF_KIND_I4),pointer  :: srcarray(:,:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1149,9 +1697,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_I43D"
 
   subroutine NUOPC_CopyArrayFarray_I43D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1168,6 +1723,10 @@ contains
     integer(ESMF_KIND_I4),pointer  :: srcarray(:,:,:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1216,9 +1775,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_I81D"
 
   subroutine NUOPC_CopyArrayFarray_I81D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1235,6 +1801,10 @@ contains
     integer(ESMF_KIND_I8),pointer  :: srcarray(:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1283,9 +1853,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_I82D"
 
   subroutine NUOPC_CopyArrayFarray_I82D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1302,6 +1879,10 @@ contains
     integer(ESMF_KIND_I8),pointer  :: srcarray(:,:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1350,9 +1931,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_I83D"
 
   subroutine NUOPC_CopyArrayFarray_I83D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1369,6 +1957,10 @@ contains
     integer(ESMF_KIND_I8),pointer  :: srcarray(:,:,:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1417,9 +2009,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_R41D"
 
   subroutine NUOPC_CopyArrayFarray_R41D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1436,6 +2035,10 @@ contains
     integer(ESMF_KIND_R4),pointer  :: srcarray(:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1484,9 +2087,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_R42D"
 
   subroutine NUOPC_CopyArrayFarray_R42D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1503,6 +2113,10 @@ contains
     integer(ESMF_KIND_R4),pointer  :: srcarray(:,:)
     character(len=32),pointer      :: direction
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     if (present(rc)) rc = ESMF_SUCCESS
 
     if (reverse) then
@@ -1551,9 +2165,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_R43D"
 
   subroutine NUOPC_CopyArrayFarray_R43D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1569,6 +2190,10 @@ contains
     integer                        :: localDeCount
     integer(ESMF_KIND_R4),pointer  :: srcarray(:,:,:)
     character(len=32),pointer      :: direction
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     if (present(rc)) rc = ESMF_SUCCESS
 
@@ -1618,9 +2243,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_R81D"
 
   subroutine NUOPC_CopyArrayFarray_R81D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1636,6 +2268,10 @@ contains
     integer                        :: localDeCount
     integer(ESMF_KIND_R8),pointer  :: srcarray(:)
     character(len=32),pointer      :: direction
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     if (present(rc)) rc = ESMF_SUCCESS
 
@@ -1685,9 +2321,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_R82D"
 
   subroutine NUOPC_CopyArrayFarray_R82D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1703,6 +2346,10 @@ contains
     integer                        :: localDeCount
     integer(ESMF_KIND_R8),pointer  :: srcarray(:,:)
     character(len=32),pointer      :: direction
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     if (present(rc)) rc = ESMF_SUCCESS
 
@@ -1752,9 +2399,16 @@ contains
       return
     endif
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
   end subroutine
 
   !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "NUOPC_CopyArrayFarray_R83D"
 
   subroutine NUOPC_CopyArrayFarray_R83D(array,farray,reverse,localDe,rc)
    ! ARGUMENTS
@@ -1770,6 +2424,10 @@ contains
     integer                        :: localDeCount
     integer(ESMF_KIND_R8),pointer  :: srcarray(:,:,:)
     character(len=32),pointer      :: direction
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
     if (present(rc)) rc = ESMF_SUCCESS
 
@@ -1818,6 +2476,10 @@ contains
         line=__LINE__, file=FILENAME, rcToReturn=rc)
       return
     endif
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end subroutine
 

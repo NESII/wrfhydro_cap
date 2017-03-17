@@ -294,16 +294,16 @@ contains
     real(ESMF_KIND_R8)          :: dt
     character(ESMF_MAXSTR)      :: logMsg
 
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
     rc = ESMF_SUCCESS
 
     ! Set mpiCommunicator for WRFHYDRO
     call ESMF_VMGet(vm, localPet=localPet, &
       mpiCommunicator=HYDRO_COMM_WORLD, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (', localPet, ') entered ',METHOD
-#endif
 
     ! Read information from config file
     call config_file_read(rc)
@@ -455,8 +455,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (', localPet, ') entered ',METHOD
 
     num_nests = num_nests + 1
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (', localPet, ') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -477,11 +477,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (', localPet, ') leaving ',METHOD
     ! local variables
     type(ESMF_TimeInterval)     :: timeStep
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     if(.not. RT_DOMAIN(did)%initialized) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
@@ -577,8 +577,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     !yw     config_flags%gwsoilcpl = nlst_rt(did)%gwsoilcpl
     !end if
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -596,11 +596,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     ! LOCAL VARIABLES
     integer                     :: stat
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     ! WRF-Hydro finish routine cannot be called because it stops MPI
 
@@ -618,8 +618,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
 
     RT_DOMAIN(did)%initialized = .false.
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -641,11 +641,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     ! LOCAL VARIABLES
     integer                    :: lIndex
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     !! Land forcing fields
     do lIndex = 1, nlst_rt(did)%nsoil
@@ -682,8 +682,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     call NUOPC_LogFarrayLclVal(rt_domain(did)%node_area, &
       fieldName="node area",label=label,rc=rc)
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -708,11 +708,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     type(ESMF_StateItem_Flag)  :: itemType
     type(ESMF_Field)           :: field
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -784,8 +784,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     enddo
     deallocate(fieldNameList)
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -808,11 +808,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     type(ESMF_StateItem_Flag)  :: itemType
     type(ESMF_Field)           :: field
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -875,8 +875,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     enddo 
     deallocate(fieldNameList)
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -938,11 +938,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
  EXTERNAL_FPAR_FILENAME_TEMPLATE, EXTERNAL_LAI_FILENAME_TEMPLATE, &
  FORC_TYP, HRLDAS_INI_TYP, GEO_STATIC_FLNM, SNOW_ASSIM
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,A)") 'WRFHYDRO: entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     configFile%nsoil = 0
     configFile%indir = " "
@@ -992,8 +992,8 @@ write(6,"(A,A)") 'WRFHYDRO: entered ',METHOD
     configFile%OUTPUT_TIMESTEP = output_timestep
     configFile%soil_thick_input = soil_thick_input
 
-#ifdef HYDRO_D
-write(6,"(A,A)") 'WRFHYDRO: leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1022,11 +1022,11 @@ write(6,"(A,A)") 'WRFHYDRO: leaving ',METHOD
     integer(ESMF_KIND_I4), pointer :: gridmask(:,:)
     integer                     :: i,j, i1,j1
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     WRFHYDRO_GridCreate = ESMF_GridCreate(name='WRFHYDRO_Grid_'//trim(nlst_rt(did)%hgrid), &
       distgrid=WRFHYDRO_DistGrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
@@ -1123,9 +1123,7 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
       msg='WRFHYDRO: Deallocation of mask memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
-#endif
+    ! TBD Don't return here!
     return
 
     ! CORNERS
@@ -1187,10 +1185,6 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     call add_area(WRFHYDRO_GridCreate, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
-#endif
-
   end function
 
   !-----------------------------------------------------------------------------
@@ -1211,11 +1205,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     real(ESMF_KIND_R8), pointer      :: radianarea(:,:)
     real(ESMF_KIND_R8), pointer      :: gridarea(:,:)
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     fieldArea = ESMF_FieldCreate(grid=grid, typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
@@ -1243,8 +1237,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
      enddo
      enddo
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1267,11 +1261,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     integer, allocatable        :: dimExtent(:,:)
     integer, allocatable        :: iIndexList(:), jIndexList(:)
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     !! Get VM Info to see if this will give me the PET info I need
     call ESMF_VMGetCurrent(currentVM, rc=rc)
@@ -1322,8 +1316,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
       msg='WRFHYDRO: Deallocation of indexCountPDeo memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1340,16 +1334,16 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     integer, intent(in)         :: did
     integer, intent(out)        :: rc
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     WRFHYDRO_get_timestep = nlst_rt(did)%dt
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end function
@@ -1365,16 +1359,16 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     character, intent(out)      :: hgrid
     integer, intent(out)        :: rc
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     hgrid = nlst_rt(did)%hgrid
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1396,11 +1390,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     integer                    :: connectedCount
     type(ESMF_StateItem_Flag)  :: itemType
 
-    if(present(rc)) rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    if(present(rc)) rc = ESMF_SUCCESS
 
     WRFHYDRO_RunModeGet = WRFHYDRO_Unknown
     forcingCount = 0
@@ -1432,10 +1426,6 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
       WRFHYDRO_RunModeGet = WRFHYDRO_Hybrid
     endif
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
-#endif
-
   end function
 
   !-----------------------------------------------------------------------------
@@ -1454,11 +1444,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     ! LOCAL VARIABLES
     type(ESMF_Time)            :: currTime
 
-    if(present(rc)) rc = ESMF_SUCCESS  ! Initialize
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    if(present(rc)) rc = ESMF_SUCCESS  ! Initialize
 
     ! Get the current time from the clock
     call ESMF_ClockGet(clock=clock,currTime=currTime,rc=rc)
@@ -1467,8 +1457,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     call WRFHYDRO_TimeToString(currTime,timestr,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1488,11 +1478,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     character (len=256)        :: tmpstr = ''
     integer                    :: strlen
 
-    if(present(rc)) rc = ESMF_SUCCESS  ! Initialize
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    if(present(rc)) rc = ESMF_SUCCESS  ! Initialize
 
     timestr = '' ! clear string
 
@@ -1510,8 +1500,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     timestr(1:strlen) = tmpstr(1:strlen)
     timestr(11:11) = '_'
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1531,21 +1521,17 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     ! LOCAL VARIABLES
     real(ESMF_KIND_R8)                  :: s_r8
 
-    if(present(rc)) rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    if(present(rc)) rc = ESMF_SUCCESS
 
     WRFHYDRO_TimeIntervalGetReal = -9999
 
     call ESMF_TimeIntervalGet(timeInterval,s_r8=s_r8,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
     WRFHYDRO_TimeIntervalGetReal = s_r8
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
-#endif
 
   end function
 
@@ -1563,11 +1549,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     integer                    :: fIndex
     logical                    :: isPresent
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     do fIndex=1,size(WRFHYDRO_FieldList)
       isPresent = NUOPC_FieldDictionaryHasEntry( &
@@ -1583,8 +1569,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
       endif
     enddo
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1604,11 +1590,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     ! LOCAL VARIABLES
     character(len=64)                    :: l_label
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     if (present(label)) then
       l_label = label
@@ -1640,8 +1626,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
       configFile%soil_thick_input(configFile%nsoil),")"
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1659,11 +1645,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     ! LOCAL VARIABLES
     character(len=64)                    :: l_label
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     if (present(label)) then
       l_label = label
@@ -1702,8 +1688,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     write (logMsg, "(2A)") trim(l_label)//" Couple outdate=",cpl_outdate
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
@@ -1723,11 +1709,11 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
     integer                     :: layerIndex
     character(len=64)           :: l_label
 
-    rc = ESMF_SUCCESS
-
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
+
+    rc = ESMF_SUCCESS
 
     if (present(label)) then
       l_label = label
@@ -1879,8 +1865,8 @@ write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') entered ',METHOD
     write (logMsg,"(A,I0)") trim(l_label)//" Grid of lakes=",nlst_rt(did)%outlake
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
 
-#ifdef HYDRO_D
-write(6,"(A,I3,A,A)") 'WRFHYDRO: (',my_id,') leaving ',METHOD
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
