@@ -1363,7 +1363,7 @@ subroutine CheckImport(gcomp, rc)
     type(type_InternalState)   :: is
     character(ESMF_MAXSTR)     :: logMsg
     character(len=64)          :: modeStr
-    character(len=64)          :: rstrtIntvlStr
+    integer                    :: rstrtIntvl
     integer                    :: rc
 
     ! query Component for its internal State
@@ -1376,11 +1376,11 @@ subroutine CheckImport(gcomp, rc)
     endif
 
     call ESMF_TimeIntervalGet(is%wrap%rstrtIntvl, &
-      timeString=rstrtIntvlStr,rc=rc)
+      s=rstrtIntvl, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    write (logMsg, "(A,(A,A))") trim(label), &
-      ": Restart Interval=",trim(rstrtIntvlStr)
+    write (logMsg, "(A,(A,I0))") trim(label), &
+      ": Restart Interval=",rstrtIntvl
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
     write (logMsg, "(A,(A,I0))") trim(label), &
       ': Domain ID=',is%wrap%did

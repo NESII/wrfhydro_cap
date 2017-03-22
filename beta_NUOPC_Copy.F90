@@ -1565,13 +1565,19 @@ module beta_NUOPC_Copy
     integer                        :: rank
     integer                        :: localDeCount
     integer(ESMF_KIND_I4),pointer  :: srcarray(:)
-    character(len=32),pointer      :: direction
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -1603,21 +1609,31 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1643,13 +1659,19 @@ module beta_NUOPC_Copy
     integer                        :: rank
     integer                        :: localDeCount
     integer(ESMF_KIND_I4),pointer  :: srcarray(:,:)
-    character(len=32),pointer      :: direction
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -1681,21 +1703,35 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1721,13 +1757,19 @@ module beta_NUOPC_Copy
     integer                        :: rank
     integer                        :: localDeCount
     integer(ESMF_KIND_I4),pointer  :: srcarray(:,:,:)
-    character(len=32),pointer      :: direction
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -1759,21 +1801,39 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &        
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1799,13 +1859,19 @@ module beta_NUOPC_Copy
     integer                        :: rank
     integer                        :: localDeCount
     integer(ESMF_KIND_I8),pointer  :: srcarray(:)
-    character(len=32),pointer      :: direction
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -1837,21 +1903,31 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1877,13 +1953,19 @@ module beta_NUOPC_Copy
     integer                        :: rank
     integer                        :: localDeCount
     integer(ESMF_KIND_I8),pointer  :: srcarray(:,:)
-    character(len=32),pointer      :: direction
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -1915,21 +1997,35 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1955,13 +2051,19 @@ module beta_NUOPC_Copy
     integer                        :: rank
     integer                        :: localDeCount
     integer(ESMF_KIND_I8),pointer  :: srcarray(:,:,:)
-    character(len=32),pointer      :: direction
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -1993,21 +2095,39 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -2032,14 +2152,20 @@ module beta_NUOPC_Copy
     type(ESMF_TypeKind_Flag)       :: typekind
     integer                        :: rank
     integer                        :: localDeCount
-    integer(ESMF_KIND_R4),pointer  :: srcarray(:)
-    character(len=32),pointer      :: direction
+    real(ESMF_KIND_R4),pointer     :: srcarray(:)
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -2071,21 +2197,31 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -2110,14 +2246,20 @@ module beta_NUOPC_Copy
     type(ESMF_TypeKind_Flag)       :: typekind
     integer                        :: rank
     integer                        :: localDeCount
-    integer(ESMF_KIND_R4),pointer  :: srcarray(:,:)
-    character(len=32),pointer      :: direction
+    real(ESMF_KIND_R4),pointer     :: srcarray(:,:)
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -2149,21 +2291,35 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -2188,14 +2344,20 @@ module beta_NUOPC_Copy
     type(ESMF_TypeKind_Flag)       :: typekind
     integer                        :: rank
     integer                        :: localDeCount
-    integer(ESMF_KIND_R4),pointer  :: srcarray(:,:,:)
-    character(len=32),pointer      :: direction
+    real(ESMF_KIND_R4),pointer     :: srcarray(:,:,:)
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -2227,21 +2389,39 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -2266,14 +2446,20 @@ module beta_NUOPC_Copy
     type(ESMF_TypeKind_Flag)       :: typekind
     integer                        :: rank
     integer                        :: localDeCount
-    integer(ESMF_KIND_R8),pointer  :: srcarray(:)
-    character(len=32),pointer      :: direction
+    real(ESMF_KIND_R8),pointer     :: srcarray(:)
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -2305,21 +2491,31 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -2344,14 +2540,20 @@ module beta_NUOPC_Copy
     type(ESMF_TypeKind_Flag)       :: typekind
     integer                        :: rank
     integer                        :: localDeCount
-    integer(ESMF_KIND_R8),pointer  :: srcarray(:,:)
-    character(len=32),pointer      :: direction
+    real(ESMF_KIND_R8),pointer     :: srcarray(:,:)
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -2383,21 +2585,35 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -2422,14 +2638,20 @@ module beta_NUOPC_Copy
     type(ESMF_TypeKind_Flag)       :: typekind
     integer                        :: rank
     integer                        :: localDeCount
-    integer(ESMF_KIND_R8),pointer  :: srcarray(:,:,:)
-    character(len=32),pointer      :: direction
+    real(ESMF_KIND_R8),pointer     :: srcarray(:,:,:)
+    character(len=32)              :: direction
+    integer,allocatable            :: compLBnd(:,:)
+    integer,allocatable            :: compUBnd(:,:)
+    integer                        :: localDe_local = 0
+    integer                        :: stat
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     if (present(rc)) rc = ESMF_SUCCESS
+
+    if (present(localDe)) localDe_local = localDe
 
     if (reverse) then
       direction = NUOPC_COPY_BWD
@@ -2461,21 +2683,39 @@ module beta_NUOPC_Copy
       return
     endif
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe,rc=rc)
+    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
+      stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Allocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
+
+    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
+      computationalUBound=compUBnd, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    if (size(srcarray) == size(farray)) then
-      if (reverse) then
-        srcarray = farray
-      else
-        farray = srcarray
-      endif
+    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (reverse) then
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     else
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE,   &
-        msg="Cannot copy "//trim(direction)//" unless array sizes match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
+      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
+      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
+      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
+      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
     endif
+
+    deallocate(compLBnd, compUBnd, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Deallocation of computational boundary memory failed.", &
+      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)

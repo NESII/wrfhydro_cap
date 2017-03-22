@@ -32,6 +32,15 @@ else
 override ESMF_F90COMPILECPPFLAGS += -DREAL8
 endif
 
+# #################################
+# Compile with Debugging Directives
+# #################################
+
+ifeq ($(DEBUG),on)
+override ESMF_F90COMPILECPPFLAGS += -DDEBUG
+override ESMF_CXXCOMPILECPPFLAGS += -DDEBUG
+endif
+
 # ###########################
 # Determine Installation Path
 # ###########################
@@ -110,13 +119,6 @@ include $(MODEL_MKINC)
 override ESMF_F90COMPILEPATHS    += -I$(MODEL_MODDIR)
 override ESMF_F90COMPILEPATHS    += -I$(MODEL_MPPDIR)
 override ESMF_F90COMPILECPPFLAGS += $(HYDRO_D)
-
-ifeq ($(DEBUG),on)
-override ESMF_F90COMPILEOPTS     += -g -traceback
-override ESMF_CXXCOMPILEOPTS     += -g -traceback
-override ESMF_F90COMPILECPPFLAGS += -DDEBUG
-override ESMF_CXXCOMPILECPPFLAGS += -DDEBUG
-endif
 
 # #######################
 # Primary Makefile Target

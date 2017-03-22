@@ -292,7 +292,9 @@ contains
     type(ESMF_Time)             :: startTime
     type(ESMF_TimeInterval)     :: timeStep
     real(ESMF_KIND_R8)          :: dt
+#ifdef DEBUG
     character(ESMF_MAXSTR)      :: logMsg
+#endif
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -347,6 +349,12 @@ contains
     call MPP_LAND_INIT()  ! required before get_file_dimension
     call get_file_dimension(fileName=configFile%GEO_STATIC_FLNM,ix=nx_global,jx=ny_global)
 
+#ifdef DEBUG
+    write (logMsg,"(A,2(I0,A))") MODNAME//": Global Dimensions = (", &
+      nx_global,",",ny_global,")"
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
+#endif
+
 !    allocate(connectionList(1),stat=stat)
 !    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
 !      msg='WRFHYDRO: Allocation of connection list memory failed.', &
@@ -400,12 +408,6 @@ contains
     ! Initialize the internal Land <-> Hydro Coupling
     call CPL_LAND_INIT(x_start, x_end, y_start, y_end)
 
-#ifdef HYDRO_D
-    write(6,"(A,I3,A,I4,A,I4)") "WRFHYDRO: (", localPet, &
-      ") calling HYDRO_ini sf_surface_physics=", sf_surface_physics, &
-      " nx_local=", nx_local, " ny_local=", ny_local
-#endif
-
     ! ntime used in HYDRO_ini
     ! Routing timestep set in HYDRO_ini
     ntime = 1
@@ -415,11 +417,6 @@ contains
     else
       call HYDRO_ini(ntime,did,ix0=nx_local,jx0=ny_local,vegtyp=IVGTYP,soltyp=isltyp)
     endif
-
-#ifdef HYDRO_D
-    write(6,"(A,I3,A)") "WRFHYDRO: (", localPet, &
-      ") returned from HYDRO_ini"
-#endif
 
     ! Initialize the timestep from driver timestep passed to cap
     call ESMF_TimeIntervalGet(timestep,s_r8=dt,rc=rc)
@@ -1021,6 +1018,10 @@ contains
     real(ESMF_KIND_RX), pointer :: coordYcorner(:,:)
     integer(ESMF_KIND_I4), pointer :: gridmask(:,:)
     integer                     :: i,j, i1,j1
+#ifdef DEBUG
+    character(ESMF_MAXSTR)      :: logMsg
+#endif
+
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -1055,15 +1056,12 @@ contains
       (/x_start,y_start/),longitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-#ifdef HYDRO_D
+#ifdef DEBUG
     ! Print Local Lat Lon Lower Left / Upper Right Centers
-    min_lat = latitude(1,1)
-    max_lat = latitude(nx_local,ny_local)
-    min_lon = longitude(1,1)
-    max_lon = longitude(nx_local,ny_local)
-    write(6,"(A,I3,A,4(F0.3,A))") 'WRFHYDRO: (',my_id, &
-      ') CENTERS (min_lon,min_lat,max_lon,max_lat)=(', &
-      min_lon,',',min_lat,',',max_lon,',',max_lat,')'
+    write(logMsg,"(A,4(F0.3,A))") MODNAME//": Center Coordinates = (", &
+      longitude(1,1),":",longitude(nx_local,ny_local),",", &
+      latitude(1,1),":",latitude(nx_local,ny_local),")"
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
 #endif
 
     ! Add Center Coordinates to Grid
@@ -1123,67 +1121,74 @@ contains
       msg='WRFHYDRO: Deallocation of mask memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
-    ! TBD Don't return here!
-    return
-
     ! CORNERS
+    if ( NUOPC_NetcdfIsPresent("XLAT_CORNER",configFile%GEO_STATIC_FLNM) .AND. &
+      NUOPC_NetcdfIsPresent("XLONG_CORNER",configFile%GEO_STATIC_FLNM)) then
 
-    ! Get Local Latitude (lat)
-    allocate(latitude(nx_local+1,ny_local+1),stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of corner latitude memory failed.', &
-      file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("XLAT_CORNER",configFile%GEO_STATIC_FLNM, &
-      (/x_start,y_start/),latitude,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      ! Get Local Latitude (lat)
+      allocate(latitude(nx_local+1,ny_local+1),stat=stat)
+      if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+        msg='WRFHYDRO: Allocation of corner latitude memory failed.', &
+        file=FILENAME, rcToReturn=rc)) return ! bail out
+      call NUOPC_NetcdfReadIXJX("XLAT_CORNER",configFile%GEO_STATIC_FLNM, &
+        (/x_start,y_start/),latitude,rc=rc)
+      if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-    ! Get Local Longitude (lon)
-    allocate(longitude(nx_local+1,ny_local+1),stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-     msg='WRFHYDRO: Allocation of corner longitude memory failed.', &
-     file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("XLONG_CORNER",configFile%GEO_STATIC_FLNM, &
-      (/x_start,y_start/),longitude,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      ! Get Local Longitude (lon)
+      allocate(longitude(nx_local+1,ny_local+1),stat=stat)
+      if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+       msg='WRFHYDRO: Allocation of corner longitude memory failed.', &
+       file=FILENAME, rcToReturn=rc)) return ! bail out
+      call NUOPC_NetcdfReadIXJX("XLONG_CORNER",configFile%GEO_STATIC_FLNM, &
+        (/x_start,y_start/),longitude,rc=rc)
+      if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-#ifdef HYDRO_D
-    ! Print Local Lat Lon Lower Left / Upper Right Corners
-    min_lat = latitude(1,1)
-    max_lat = latitude(nx_local+1,ny_local+1)
-    min_lon = longitude(1,1)
-    max_lon = longitude(nx_local+1,ny_local+1)
-    write(6,"(A,I3,A,4(F0.3,A))") 'WRFHYDRO: (',my_id, &
-      ') CORNERS (min_lon,min_lat,max_lon,max_lat)=(', &
-      min_lon,',',min_lat,',',max_lon,',',max_lat,')'
+#ifdef DEBUG
+      ! Print Local Lat Lon Lower Left / Upper Right Corners
+      write(logMsg,"(A,4(F0.3,A))") MODNAME//": Corner Coordinates = (", &
+        longitude(1,1),":",longitude(nx_local+1,ny_local+1),",", &
+        latitude(1,1),":",latitude(nx_local+1,ny_local+1),")"
+      call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
 #endif
 
-    ! Add Corner Coordinates to Grid
-    call ESMF_GridAddCoord(WRFHYDRO_GridCreate, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      ! Add Corner Coordinates to Grid
+      call ESMF_GridAddCoord(WRFHYDRO_GridCreate, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
+      if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-    call ESMF_GridGetCoord(WRFHYDRO_GridCreate, coordDim=1, localDE=0, &
-      staggerloc=ESMF_STAGGERLOC_CORNER, &
-      computationalLBound=lbnd, computationalUBound=ubnd, &
-      farrayPtr=coordXcorner, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-    call ESMF_GridGetCoord(WRFHYDRO_GridCreate, coordDim=2, localDE=0, &
-      staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=coordYcorner, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
+      call ESMF_GridGetCoord(WRFHYDRO_GridCreate, coordDim=1, localDE=0, &
+        staggerloc=ESMF_STAGGERLOC_CORNER, &
+        computationalLBound=lbnd, computationalUBound=ubnd, &
+        farrayPtr=coordXcorner, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
+      call ESMF_GridGetCoord(WRFHYDRO_GridCreate, coordDim=2, localDE=0, &
+        staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=coordYcorner, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
 
-    do j = lbnd(2),ubnd(2)
-    do i = lbnd(1),ubnd(1)
-      coordXcorner(i,j) = longitude(i,j)
-      coordYcorner(i,j) = latitude(i,j)
-    enddo
-    enddo
+      do j = lbnd(2),ubnd(2)
+      do i = lbnd(1),ubnd(1)
+        coordXcorner(i,j) = longitude(i,j)
+        coordYcorner(i,j) = latitude(i,j)
+      enddo
+      enddo
 
-    deallocate(latitude,longitude,stat=stat)
-    if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Deallocation of corner longitude and latitude memory failed.', &
-      file=FILENAME,rcToReturn=rc)) return ! bail out
+      deallocate(latitude,longitude,stat=stat)
+      if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
+        msg='WRFHYDRO: Deallocation of corner longitude and latitude memory failed.', &
+        file=FILENAME,rcToReturn=rc)) return ! bail out
 
-    call add_area(WRFHYDRO_GridCreate, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
+      call add_area(WRFHYDRO_GridCreate, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
+
+    else
+#ifdef DEBUG
+      ! Warning no corners in domain file
+      call ESMF_LogWrite(MODNAME//": No Corner Coordinates.", ESMF_LOGMSG_WARNING)
+#endif
+    endif
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end function
 
@@ -1260,6 +1265,9 @@ contains
     type(ESMF_DELayout)         :: delayout
     integer, allocatable        :: dimExtent(:,:)
     integer, allocatable        :: iIndexList(:), jIndexList(:)
+#ifdef DEBUG
+    character(ESMF_MAXSTR)      :: logMsg
+#endif
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -1305,6 +1313,13 @@ contains
 
     nx_local = x_end - x_start + 1
     ny_local = y_end - y_start + 1
+
+#ifdef DEBUG
+    write (logMsg,"(A,6(I0,A))") MODNAME//": Local Indices = (", &
+      x_start,":",x_end,",",y_start,":",y_end,") Local Size = (", &
+      nx_local,"x",ny_local,")"
+    call ESMF_LogWrite(trim(logMsg), ESMF_LOGMSG_INFO)
+#endif
 
     deallocate(iIndexList,jIndexList,stat=stat)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
@@ -1532,6 +1547,10 @@ contains
     call ESMF_TimeIntervalGet(timeInterval,s_r8=s_r8,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
     WRFHYDRO_TimeIntervalGetReal = s_r8
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
   end function
 
