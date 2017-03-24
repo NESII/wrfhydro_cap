@@ -88,7 +88,7 @@ MODEL_FILES  := $(MODEL_LIB) $(MODEL_MODS)
 CAP_DIR       := $(abspath $(DIR))
 CAP_LIB       := libwrfhydro_nuopc.a
 CAP_DEP_FRONT := wrfhydro_nuopc
-CAP_VERS      := version
+CAP_VERS      := VERSION
 CAP_MK        := wrfhydro.mk
 
 CAP_OBJS      := WRFHydro_NUOPC_Cap.o
@@ -109,7 +109,7 @@ CAP_MODS      += beta_nuopc_fill.mod
 CAP_MODS      += beta_nuopc_log.mod
 CAP_MODS      += beta_nuopc_base.mod
 
-CAP_FILES     := $(CAP_OBJS) $(CAP_MODS) $(CAP_LIB)
+CAP_FILES     := $(CAP_OBJS) $(CAP_MODS) $(CAP_LIB) $(CAP_VERS) $(CAP_MK)
 
 # ###############################
 # Include Model Makefile Fragment
@@ -123,15 +123,15 @@ override ESMF_F90COMPILECPPFLAGS += $(HYDRO_D)
 # #######################
 # Primary Makefile Target
 # #######################
-.PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model create_mk create_vers install_mk install_vers
+.PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model install_mk
 
-nuopc: $(CAP_FILES) create_mk create_vers
+nuopc: $(CAP_FILES)
 
-nuopcinstall: $(CAP_LIB) $(CAP_MODS) \
- $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
+nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
  $(addprefix $(INSTPATH)/,$(CAP_LIB)) \
- install_mk \
- install_vers
+ $(addprefix $(INSTPATH)/,$(CAP_MODS)) \
+ $(addprefix $(INSTPATH)/,$(CAP_VERS)) \
+ install_mk
 
 # ############
 # Dependencies
@@ -212,7 +212,7 @@ $(CAP_LIB): $(MODEL_LIB) $(CAP_OBJS)
 	cp $(MODEL_LIB) $@
 	ar cr $@ $(CAP_OBJS)
 
-create_vers:
+$(CAP_VERS):
 	@echo $(HR)
 	@echo "Generating Version Information"
 	@echo
@@ -228,7 +228,7 @@ create_vers:
 	  git show . | grep -m 1 "Date: " >> $(CAP_VERS); \
 	fi
 
-create_mk: 
+$(CAP_MK): 
 	@echo $(HR)
 	@echo "Generating NUOPC Makefile Fragment"
 	@echo
@@ -251,22 +251,6 @@ $(INSTPATH)/%:
 	@echo
 	@mkdir -p $(INSTPATH)
 	cp $(notdir $@) $@
-
-install_vers:
-	@echo $(HR)
-	@echo "Generating Version Information"
-	@echo
-	@echo "# NUOPC Cap Version" > $(INSTPATH)/$(CAP_VERS)
-	@if [ -d .svn ]; then \
-	  echo "SVN Repository" > $(INSTPATH)/$(CAP_VERS); \
-	  svn info . | grep URL >> $(INSTPATH)/$(CAP_VERS); \
-	  svn info . | grep "Last Changed Rev" >> $(INSTPATH)/$(CAP_VERS); \
-	elif [ -d .git ]; then \
-	  echo "Git Repository" > $(INSTPATH)/$(CAP_VERS); \
-	  git show . | grep -m 1 "commit " >> $(INSTPATH)/$(CAP_VERS); \
-	  git show . | grep -m 1 "Author: " >> $(INSTPATH)/$(CAP_VERS); \
-	  git show . | grep -m 1 "Date: " >> $(INSTPATH)/$(CAP_VERS); \
-	fi
 
 install_mk: 
 	@echo $(HR)
@@ -350,7 +334,7 @@ clean_cap:
 	@echo $(HR)
 	@echo "Cleaning Cap build..."
 	@echo
-	rm -f $(CAP_FILES) $(CAP_MK) $(CAP_VERS)
+	rm -f $(CAP_FILES)
 
 # ###########
 # Clean Model

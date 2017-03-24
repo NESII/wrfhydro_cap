@@ -116,7 +116,7 @@
 !!
 !! Attribute         | Default         | Description
 !! ------------------|-----------------|-------------------------------------------------------------------------------------
-!! Verbosity         | VERBOSITY_LV2   | Verbosity levels are defined in WRFHYDRO_NUOPC_Macros.h
+!! Verbosity         | VERBOSITY_LV1   | Verbosity levels are defined in WRFHYDRO_NUOPC_Macros.h
 !! DomainID          | 1               |
 !! RestartInterval   | NEVER           | Determine when to write NUOPC state restart files in seconds
 !! ConfigFile        | hydro.namelist  | Set the WRF-Hydro configuraion file
@@ -254,7 +254,7 @@ module WRFHydro_NUOPC
   type type_InternalStateStruct
     integer               :: did           = 1
     character             :: hgrid         = '0'
-    integer               :: verbosity     = VERBOSITY_LV2
+    integer               :: verbosity     = VERBOSITY_LV1
     character(len=100)    :: configFile    = 'hydro.namelist'
     character(len=100)    :: dasConfigFile = 'namelist.hrldas'
     logical               :: lwrite_grid   = .FALSE.
@@ -297,15 +297,12 @@ module WRFHydro_NUOPC
     type(type_InternalState)   :: is
 
 #ifdef DEBUG
+    call ESMF_LogSet(flush=.true., rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
     rc = ESMF_SUCCESS
-
-#ifdef DEBUG
-    call ESMF_LogSet(flush=.true., rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-#endif
 
     ! allocate memory for this internal state and set it in the component
     allocate(is%wrap, stat=stat)
@@ -414,8 +411,9 @@ module WRFHydro_NUOPC
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
     is%wrap%verbosity = ESMF_UtilString2Int(value, &
-      specialStringList=(/"min","max","debug","default"/), &
-      specialValueList=(/VERBOSITY_LV0,VERBOSITY_LV2,VERBOSITY_LV3,VERBOSITY_LV2/), rc=rc)
+      specialStringList=(/"none","min","max","debug","default"/), &
+      specialValueList=(/VERBOSITY_LV0,VERBOSITY_LV1,VERBOSITY_LV2, &
+                         VERBOSITY_LV3,VERBOSITY_LV1/), rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
     ! Determine hydro configuration filename
@@ -529,10 +527,8 @@ module WRFHydro_NUOPC
       acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    if (is%wrap%verbosity >= VERBOSITY_LV2) &
-      call InternalConfigLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+      call LogAttributes(trim(cname),gcomp)
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -571,9 +567,6 @@ module WRFHydro_NUOPC
     nullify(is%wrap)
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
 
     ! initialize wrfhydro
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
@@ -621,11 +614,8 @@ module WRFHydro_NUOPC
       endif
     enddo
 
-    if (is%wrap%verbosity >= VERBOSITY_LV2) call AdvertiseLog(trim(cname))
-    if (is%wrap%verbosity >= VERBOSITY_LV2) &
-      call InternalConfigLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+      call LogAdvertised(trim(cname))
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -666,9 +656,6 @@ module WRFHydro_NUOPC
     nullify(is%wrap)
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
 
     WRFHYDRO_Grid = WRFHYDRO_GridCreate(is%wrap%did,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -711,8 +698,6 @@ module WRFHydro_NUOPC
         endif
         call NUOPC_Realize(is%wrap%NStateImp(1), field=field, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call ESMF_LogWrite(trim(cname)//": realized import="// &
-          trim(WRFHYDRO_FieldList(fIndex)%stdname), ESMF_LOGMSG_INFO)
       elseif(WRFHYDRO_FieldList(fIndex)%adImport) then
         call ESMF_StateRemove(is%wrap%NStateImp(1), (/trim(WRFHYDRO_FieldList(fIndex)%stdname)/), &
           relaxedflag=.true.,rc=rc)
@@ -750,8 +735,6 @@ module WRFHydro_NUOPC
         endif
         call NUOPC_Realize(is%wrap%NStateExp(1), field=field,rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
-        call ESMF_LogWrite(trim(cname)//": realized export="// &
-          trim(WRFHYDRO_FieldList(fIndex)%stdname), ESMF_LOGMSG_INFO)
       elseif(WRFHYDRO_FieldList(fIndex)%adExport) then
         call ESMF_StateRemove(is%wrap%NStateExp(1),(/trim(WRFHYDRO_FieldList(fIndex)%stdname)/), &
           relaxedflag=.true.,rc=rc)
@@ -772,11 +755,10 @@ module WRFHydro_NUOPC
     is%wrap%mode(1) = WRFHYDRO_RunModeGet(is%wrap%NStateImp(1),rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    if (is%wrap%verbosity >= VERBOSITY_LV2) call RealizeLog(trim(cname))
-    if (is%wrap%verbosity >= VERBOSITY_LV2) &
-      call InternalConfigLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+      call LogRealized(trim(cname))
+    if (is%wrap%verbosity >= VERBOSITY_LV1) &
+      call LogMode(trim(cname),gcomp)
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -818,9 +800,6 @@ module WRFHydro_NUOPC
     nullify(is%wrap)
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
 
     is%wrap%timeSlice = is%wrap%timeSlice + 1
 
@@ -889,9 +868,8 @@ module WRFHydro_NUOPC
     call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="true", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-!    if (is%wrap%verbosity >= VERBOSITY_LV3) call WRFHydro_FieldListLog(label=trim(cname))
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+!    if (is%wrap%verbosity >= VERBOSITY_LV3) &
+!      call WRFHydro_FieldListLog(label=trim(cname))
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -930,9 +908,6 @@ module WRFHydro_NUOPC
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
-
     ! query the Component for its clock
     call NUOPC_ModelGet(gcomp, modelClock=modelClock, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
@@ -958,10 +933,8 @@ module WRFHydro_NUOPC
     call NUOPC_CompSetClock(gcomp, modelClock, timeStep, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    if (is%wrap%verbosity >= VERBOSITY_LV2) &
-      call InternalClockLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+      call LogClock(trim(cname),gcomp)
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1004,9 +977,6 @@ subroutine CheckImport(gcomp, rc)
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
-
     ! query the Component for its clock
     call NUOPC_ModelGet(gcomp, modelClock=modelClock, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
@@ -1028,9 +998,6 @@ subroutine CheckImport(gcomp, rc)
         line=__LINE__,file=__FILE__,rcToReturn=rc)
       return  ! bail out
     endif
-
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1073,9 +1040,6 @@ subroutine CheckImport(gcomp, rc)
     nullify(is%wrap)
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
 
     is%wrap%timeSlice = is%wrap%timeSlice + 1
     if (is%wrap%timeSlice > 999999999) then
@@ -1160,10 +1124,10 @@ subroutine CheckImport(gcomp, rc)
     endif
 
 !    if (is%wrap%verbosity >= VERBOSITY_LV3) call WRFHydro_FieldListLog(label=trim(cname))
-    if (is%wrap%verbosity >= VERBOSITY_LV2) &
-      call InternalClockLog(trim(cname),gcomp)
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
+      call LogMode(trim(cname),gcomp)
+    if (is%wrap%verbosity >= VERBOSITY_LV1) &
+      call LogClock(trim(cname),gcomp)
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1200,14 +1164,8 @@ subroutine CheckImport(gcomp, rc)
     call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': entered '//METHOD, ESMF_LOGMSG_INFO)
-
     call wrfhydro_nuopc_fin(is%wrap%did,rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-
-    if (is%wrap%verbosity >= VERBOSITY_LV1) &
-      call ESMF_LogWrite(trim(cname)//': leaving '//METHOD, ESMF_LOGMSG_INFO)
 
     deallocate(is%wrap, stat=stat)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
@@ -1221,13 +1179,13 @@ subroutine CheckImport(gcomp, rc)
   end subroutine
 
   !-----------------------------------------------------------------------------
-  ! Utilities
+  ! Log Utilities
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "AdvertiseLog"
+#define METHOD "LogAdvertised"
 
-  subroutine AdvertiseLog(label)
+  subroutine LogAdvertised(label)
     character(len=*),intent(in) :: label
 
     ! local variables
@@ -1288,9 +1246,9 @@ subroutine CheckImport(gcomp, rc)
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "RealizeLog"
+#define METHOD "LogRealized"
 
-  subroutine RealizeLog(label)
+  subroutine LogRealized(label)
     character(len=*),intent(in) :: label
 
     ! local variables
@@ -1352,9 +1310,9 @@ subroutine CheckImport(gcomp, rc)
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "InternalConfigLog"
+#define METHOD "LogAttributes"
 
-  subroutine InternalConfigLog(label,gcomp)
+  subroutine LogAttributes(label,gcomp)
     character(len=*), intent(in)  :: label
     type(ESMF_GridComp)           :: gcomp
 
@@ -1412,9 +1370,37 @@ subroutine CheckImport(gcomp, rc)
     write (logMsg, "(A,(A,L1))") trim(label), &
       ': Log Memory=',is%wrap%llog_memory
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,(A,I0))") trim(label), &
-      ': Time Slice=',is%wrap%timeSlice
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
+  end subroutine
+
+  !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "LogMode"
+
+  subroutine LogMode(label,gcomp)
+    character(len=*), intent(in)  :: label
+    type(ESMF_GridComp)           :: gcomp
+
+    ! local variables
+
+    type(type_InternalState)   :: is
+    character(ESMF_MAXSTR)     :: logMsg
+    character(len=64)          :: modeStr
+    integer                    :: rc
+
+    ! query Component for its internal State
+    nullify(is%wrap)
+    call ESMF_UserCompGetInternalState(gcomp, label_InternalState, is, rc)
+    if (.NOT.(rc.eq.ESMF_SUCCESS)) then
+      call ESMF_LogWrite(trim(label)// &
+        ' ESMF_UserCompGetInternalState failed.',ESMF_LOGMSG_ERROR)
+      return  ! bail out
+    endif
 
     select case(is%wrap%mode(1))
       case (WRFHYDRO_Offline)
@@ -1439,9 +1425,9 @@ subroutine CheckImport(gcomp, rc)
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "InternalClockLog"
+#define METHOD "LogClock"
 
-  subroutine InternalClockLog(label,gcomp)
+  subroutine LogClock(label,gcomp)
     character(len=*), intent(in) :: label
     type(ESMF_GridComp)          :: gcomp
 
