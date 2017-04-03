@@ -398,12 +398,12 @@ module WRFHydro_NUOPC
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
     ! Restart Interval
-    call ESMF_AttributeGet(gcomp, name="RestartInterval", value=value, defaultValue="none", &
+    call ESMF_AttributeGet(gcomp, name="RestartInterval", value=value, defaultValue="default", &
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
     rstrtIntvl = ESMF_UtilString2Int(value, &
-      specialStringList=(/"none","hourly","daily"/), &
-      specialValueList=(/HUGE(rstrtIntvl),3600,86400/), rc=rc)
+      specialStringList=(/"default","yearly","hourly","daily"/), &
+      specialValueList=(/31536000,31536000,3600,86400/), rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
     ! Determine Verbosity
@@ -933,6 +933,10 @@ module WRFHydro_NUOPC
     call NUOPC_CompSetClock(gcomp, modelClock, timeStep, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
+    call ESMF_TimeIntervalSet(is%wrap%rstrtAccum, &
+      s_r8=0._ESMF_KIND_R8, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+
     if (is%wrap%verbosity >= VERBOSITY_LV1) &
       call LogClock(trim(cname),gcomp)
 
@@ -1104,14 +1108,14 @@ subroutine CheckImport(gcomp, rc)
     is%wrap%rstrtAccum = is%wrap%rstrtAccum + modelTimeStep
     if (is%wrap%rstrtAccum >= is%wrap%rstrtIntvl) then
       call beta_NUOPC_Write(is%wrap%NStateImp(1), &
-        fileNamePrefix=trim(cname)//"_RSTRT_"//trim(modelStopTimeStr), &
+        fileNamePrefix=trim(cname)//"_RSTRT_IMP_"//trim(modelStopTimeStr)//"_D"//trim(is%wrap%hgrid), &
         singleFile=.true., &
         overwrite=.true., &
         relaxedFlag=.true., &
         rc=rc)
       if (ESMF_STDERRORCHECK(rc)) return  ! bail out
       call beta_NUOPC_Write(is%wrap%NStateExp(1), &
-        fileNamePrefix=trim(cname)//"_RSTRT_"//trim(modelStopTimeStr), &
+        fileNamePrefix=trim(cname)//"_RSTRT_EXP_"//trim(modelStopTimeStr)//"_D"//trim(is%wrap%hgrid), &
         singleFile=.true., &
         overwrite=.true., &
         relaxedFlag=.true., &
