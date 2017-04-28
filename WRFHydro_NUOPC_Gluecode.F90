@@ -62,6 +62,7 @@ module wrfhydro_nuopc_gluecode
   public :: wrfhydro_nuopc_fin
   public :: WRFHYDRO_GridCreate
   public :: WRFHYDRO_get_timestep
+  public :: WRFHYDRO_set_timestep
   public :: WRFHYDRO_get_hgrid
   public :: WRFHYDRO_RunModeGet
   public :: WRFHYDRO_Unknown
@@ -1012,10 +1013,10 @@ contains
     real, allocatable           :: latitude(:,:), longitude(:,:)
     integer, allocatable        :: mask(:,:)
     integer                     :: lbnd(2),ubnd(2)
-    real(ESMF_KIND_RX), pointer :: coordXcenter(:,:)
-    real(ESMF_KIND_RX), pointer :: coordYcenter(:,:)
-    real(ESMF_KIND_RX), pointer :: coordXcorner(:,:)
-    real(ESMF_KIND_RX), pointer :: coordYcorner(:,:)
+    real(ESMF_KIND_R8), pointer :: coordXcenter(:,:)
+    real(ESMF_KIND_R8), pointer :: coordYcenter(:,:)
+    real(ESMF_KIND_R8), pointer :: coordXcorner(:,:)
+    real(ESMF_KIND_R8), pointer :: coordYcorner(:,:)
     integer(ESMF_KIND_I4), pointer :: gridmask(:,:)
     integer                     :: i,j, i1,j1
 #ifdef DEBUG
@@ -1031,7 +1032,7 @@ contains
 
     WRFHYDRO_GridCreate = ESMF_GridCreate(name='WRFHYDRO_Grid_'//trim(nlst_rt(did)%hgrid), &
       distgrid=WRFHYDRO_DistGrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
-      coordTypeKind=ESMF_TYPEKIND_RX, &
+      coordTypeKind=ESMF_TYPEKIND_R8, &
 !      gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,1/), &
       rc = rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
@@ -1362,6 +1363,31 @@ contains
 #endif
 
   end function
+
+  !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_set_timestep"
+
+  subroutine WRFHYDRO_set_timestep(did,dt,rc)
+    ! ARGUMENTS
+    integer, intent(in)           :: did
+    real(ESMF_KIND_R8),intent(in) :: dt
+    integer, intent(out)          :: rc
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
+    rc = ESMF_SUCCESS
+
+    nlst_rt(did)%dt = dt
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
+  end subroutine
 
   !-----------------------------------------------------------------------------
 

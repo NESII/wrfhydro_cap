@@ -28,8 +28,10 @@ include $(ESMFMKFILE)
 
 ifeq ($(BUILD_PREC),r4)
 override ESMF_F90COMPILECPPFLAGS += -DREAL4
-else
+else ifeq ($(BUILD_PREC),r8)
 override ESMF_F90COMPILECPPFLAGS += -DREAL8
+else
+override ESMF_F90COMPILECPPFLAGS += -DREAL4
 endif
 
 # #################################
@@ -123,7 +125,7 @@ override ESMF_F90COMPILECPPFLAGS += $(HYDRO_D)
 # #######################
 # Primary Makefile Target
 # #######################
-.PHONY: nuopc nuopcinstall nuopcclean clean_cap clean_model install_mk
+.PHONY: nuopc nuopcinstall nuopcdistclean nuopcclean install_mk
 
 nuopc: $(CAP_FILES)
 
@@ -320,31 +322,25 @@ check_cap:
 	@echo
 	$(foreach FILENAME, $(CAP_FILES), $(call checkfile, $(FILENAME)))
 
-# #########
-# Clean all
-# #########
+# ###################
+# Clean Cap and Model
+# ###################
 
-nuopcclean: clean_cap clean_model
-
-# ##########
-# Clean  Cap
-# ##########
-
-clean_cap:
-	@echo $(HR)
-	@echo "Cleaning Cap build..."
-	@echo
-	rm -f $(CAP_FILES)
-
-# ###########
-# Clean Model
-# ###########
-
-clean_model:
+nuopcdistclean: nuopcclean
 	@echo $(HR)
 	@echo "Cleaning Model build..."
 	@echo ""
 	$(call checkdir, $(MODEL_DIR))
 	make -C $(MODEL_DIR) -f $(MODEL_MK) clean
+
+# #########
+# Clean Cap
+# #########
+
+nuopcclean:
+	@echo $(HR)
+	@echo "Cleaning Cap build..."
+	@echo
+	rm -f $(CAP_FILES)
 
 # ------------------------------------------------------------------------------

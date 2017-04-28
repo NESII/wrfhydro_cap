@@ -252,23 +252,25 @@ module WRFHydro_NUOPC
   CHARACTER(LEN=*), PARAMETER :: label_InternalState = 'InternalState'
 
   type type_InternalStateStruct
-    integer               :: did           = 1
-    character             :: hgrid         = '0'
-    integer               :: verbosity     = VERBOSITY_LV1
-    character(len=64)     :: configFile    = 'hydro.namelist'
-    character(len=64)     :: dasConfigFile = 'namelist.hrldas'
-    logical               :: lwrite_grid   = .TRUE.
-    logical               :: llog_memory   = .FALSE.
-    logical               :: ltestfill_imp = .FALSE.
-    logical               :: ltestfill_exp = .FALSE.
-    integer               :: nfields       = size(WRFHYDRO_FieldList)
-    integer               :: timeSlice     = 0
+    integer                  :: did           = 1
+    character                :: hgrid         = '0'
+    integer                  :: verbosity     = VERBOSITY_LV1
+    character(len=64)        :: configFile    = 'hydro.namelist'
+    character(len=64)        :: dasConfigFile = 'namelist.hrldas'
+    logical                  :: nestToNest    = .FALSE.
+    logical                  :: lwrite_grid   = .TRUE.
+    logical                  :: llog_memory   = .FALSE.
+    logical                  :: ltestfill_imp = .FALSE.
+    logical                  :: ltestfill_exp = .FALSE.
+    integer                  :: nfields       = size(WRFHYDRO_FieldList)
+    integer                  :: timeSlice     = 0
+    real(ESMF_KIND_R8)       :: timeStepCfg = 0
     logical                  :: rstrtWrite = .FALSE.
-    integer                  :: rstrtIntvlInt =0
+    real(ESMF_KIND_R8)       :: rstrtIntvlCfg =0
     type(ESMF_TimeInterval)  :: rstrtIntvl
     type(ESMF_TimeInterval)  :: rstrtTimer
     logical                  :: debugWrite = .FALSE.
-    integer                  :: debugIntvlInt =0
+    real(ESMF_KIND_R8)       :: debugIntvlCfg =0
     type(ESMF_TimeInterval)  :: debugIntvl
     type(ESMF_TimeInterval)  :: debugTimer
     type (ESMF_Clock)        :: clock(1)
@@ -377,7 +379,7 @@ module WRFHydro_NUOPC
     type(ESMF_Config)          :: config
     type(NUOPC_FreeFormat)     :: attrFF
     type(type_InternalState)   :: is
-    character(len=10)          :: value
+    character(len=64)          :: value
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -421,25 +423,44 @@ module WRFHydro_NUOPC
     is%wrap%did = ESMF_UtilString2Int(value, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    ! Restart Write Interval
-    call ESMF_AttributeGet(gcomp, name="restart_interval", value=value, &
-      defaultValue="default", &
+    ! Time Step
+    call ESMF_AttributeGet(gcomp, name="time_step", value=value, &
+      defaultValue="0", &
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    is%wrap%rstrtIntvlInt = ESMF_UtilString2Int(value, &
-      specialStringList=(/"default","yearly","hourly","daily"/), &
-      specialValueList=(/0,31536000,3600,86400/), rc=rc)
+    read(value, *, iostat=stat) is%wrap%timeStepCfg
+    if (stat /= 0) then
+      call ESMF_LogSetError(ESMF_FAILURE, &
+        msg=METHOD//": time_step configuration error.", &
+        line=__LINE__,file=__FILE__,rcToReturn=rc)
+      return  ! bail out
+    endif
+
+    ! Restart Write Interval
+    call ESMF_AttributeGet(gcomp, name="restart_interval", value=value, &
+      defaultValue="0", &
+      convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    read(value, *, iostat=stat) is%wrap%rstrtIntvlCfg
+    if (stat /= 0) then
+      call ESMF_LogSetError(ESMF_FAILURE, &
+        msg=METHOD//": restart_interval configuration error.", &
+        line=__LINE__,file=__FILE__,rcToReturn=rc)
+      return  ! bail out
+    endif
 
     ! Debug Write Interval
     call ESMF_AttributeGet(gcomp, name="debug_interval", value=value, &
       defaultValue="default", &
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    is%wrap%debugIntvlInt = ESMF_UtilString2Int(value, &
-      specialStringList=(/"default","yearly","hourly","daily"/), &
-      specialValueList=(/0,31536000,3600,86400/), rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    read(value, *, iostat=stat) is%wrap%debugIntvlCfg
+    if (stat /= 0) then
+      call ESMF_LogSetError(ESMF_FAILURE, &
+        msg=METHOD//": debug_interval configuration error.", &
+        line=__LINE__,file=__FILE__,rcToReturn=rc)
+      return  ! bail out
+    endif
 
     ! Determine Verbosity
     call ESMF_AttributeGet(gcomp, name="verbosity", value=value, &
@@ -465,6 +486,13 @@ module WRFHydro_NUOPC
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
     is%wrap%dasConfigFile = value
+
+    ! Connect Nest to Nest
+    call ESMF_AttributeGet(gcomp, name="nest_to_nest", value=value, &
+     defaultValue="false", &
+      convention="NUOPC", purpose="Instance", rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    is%wrap%nestToNest = (trim(value)=="true")
 
     ! Write coupled grid files
     call ESMF_AttributeGet(gcomp, name="write_grid", value=value, &
@@ -493,22 +521,6 @@ module WRFHydro_NUOPC
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
     is%wrap%ltestfill_exp = (trim(value)=="true")
-
-    ! Convert restart interval to ESMF_TimeInterval
-    call ESMF_TimeIntervalSet(is%wrap%rstrtIntvl, &
-      s=is%wrap%rstrtIntvlInt, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    if (is%wrap%rstrtIntvlInt /= 0) then
-      is%wrap%rstrtWrite = .TRUE.
-    endif
-
-    ! Convert debug interval to ESMF_TimeInterval
-    call ESMF_TimeIntervalSet(is%wrap%debugIntvl, &
-      s=is%wrap%debugIntvlInt, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    if (is%wrap%debugIntvlInt /= 0) then
-      is%wrap%debugWrite = .TRUE.
-    endif
 
     ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, &
@@ -568,16 +580,21 @@ module WRFHydro_NUOPC
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
     ! add namespace
-    call beta_NUOPC_AddNamespace(importState, &
-      domain=trim(is%wrap%hgrid), &
-      nestedStateName="NestedStateImp_N1", &
-      nestedState=is%wrap%NStateImp(1), rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    call beta_NUOPC_AddNamespace(exportState, &
-      domain=trim(is%wrap%hgrid), &
-      nestedStateName="NestedStateExp_N1", &
-      nestedState=is%wrap%NStateExp(1), rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    if(.NOT.is%wrap%nestToNest) then
+      is%wrap%NStateImp(1) = importState
+      is%wrap%NStateExp(1) = exportState
+    else
+      call beta_NUOPC_AddNamespace(importState, &
+        domain=trim(is%wrap%hgrid), &
+        nestedStateName="NestedStateImp_N1", &
+        nestedState=is%wrap%NStateImp(1), rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+      call beta_NUOPC_AddNamespace(exportState, &
+        domain=trim(is%wrap%hgrid), &
+        nestedStateName="NestedStateExp_N1", &
+        nestedState=is%wrap%NStateExp(1), rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    endif
 
     call WRFHYDRO_FieldDictionaryAdd(rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
@@ -870,7 +887,7 @@ module WRFHydro_NUOPC
     type(type_InternalState)   :: is
     real(ESMF_KIND_R8)         :: dt
     type(ESMF_Clock)           :: modelClock
-    type(ESMF_TimeInterval)    :: timestep
+    type(ESMF_TimeInterval)    :: timeStep
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -891,25 +908,44 @@ module WRFHydro_NUOPC
     call NUOPC_ModelGet(gcomp, modelClock=modelClock, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    is%wrap%clock(1) = ESMF_ClockCreate(modelClock, rc=rc)
+    ! query the clock for its timestep
+    call ESMF_ClockGet(modelClock, timeStep=timeStep, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    dt = WRFHYDRO_get_timestep(is%wrap%did,rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    call ESMF_TimeIntervalSet(timestep, &
-      s_r8=dt, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    call ESMF_ClockSet(is%wrap%clock(1), &
-      timeStep=timestep, rc=rc)
+    if (is%wrap%timeStepCfg /= 0) then 
+      call ESMF_TimeIntervalSet(timestep, &
+        s_r8=is%wrap%timeStepCfg, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+      call WRFHYDRO_set_timestep(is%wrap%did,dt,rc)
+      if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+      call ESMF_ClockSet(modelClock, timeStep=timeStep, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    endif
+
+    call NUOPC_CompSetClock(gcomp, modelClock, timeStep, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
+    is%wrap%clock(1) = modelClock
+
+    ! Convert restart interval to ESMF_TimeInterval
+    call ESMF_TimeIntervalSet(is%wrap%rstrtIntvl, &
+      s_r8=is%wrap%rstrtIntvlCfg, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    if (is%wrap%rstrtIntvlCfg /= 0) then
+      is%wrap%rstrtWrite = .TRUE.
+    endif
+
+    ! Convert debug interval to ESMF_TimeInterval
+    call ESMF_TimeIntervalSet(is%wrap%debugIntvl, &
+      s_r8=is%wrap%debugIntvlCfg, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    if (is%wrap%debugIntvlCfg /= 0) then
+      is%wrap%debugWrite = .TRUE.
+    endif
+
+    ! Reset Timers
     call ESMF_TimeIntervalSet(is%wrap%stepAccum(1), &
       s_r8=0._ESMF_KIND_R8, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-
-    ! initialize internal clock
-    ! here: parent Clock and stability timeStep determine actual model timeStep
-    call NUOPC_CompSetClock(gcomp, modelClock, timeStep, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
     call ESMF_TimeIntervalSet(is%wrap%rstrtTimer, &
@@ -1370,16 +1406,22 @@ subroutine CheckImport(gcomp, rc)
     endif
 
     write (logMsg, "(A,(A,L1))") trim(label)//": ", &
+      "Nest To Nest           = ",is%wrap%nestToNest
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg, "(A,(A,F0.0))") trim(label)//": ", &
+      "Time Step Config       = ",is%wrap%timeStepCfg
+    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg, "(A,(A,L1))") trim(label)//": ", &
       "Write Restart Files    = ",is%wrap%rstrtWrite
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,(A,I0))") trim(label)//": ", &
-      "Restart Write Interval = ",is%wrap%rstrtIntvlInt
+    write (logMsg, "(A,(A,F0.0))") trim(label)//": ", &
+      "Restart Write Interval = ",is%wrap%rstrtIntvlCfg
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
     write (logMsg, "(A,(A,L1))") trim(label)//": ", &
       "Write Debug Files      = ",is%wrap%debugWrite
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,(A,I0))") trim(label)//": ", &
-      "Debug Write Interval   = ",is%wrap%rstrtIntvlInt
+    write (logMsg, "(A,(A,F0.0))") trim(label)//": ", &
+      "Debug Write Interval   = ",is%wrap%debugIntvlCfg
     call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
     write (logMsg, "(A,(A,I0))") trim(label)//": ", &
       "Domain ID              = ",is%wrap%did

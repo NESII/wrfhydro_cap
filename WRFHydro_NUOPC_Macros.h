@@ -14,9 +14,12 @@
 #if defined(REAL4)
 #define ESMF_KIND_RX ESMF_KIND_R4
 #define ESMF_TYPEKIND_RX ESMF_TYPEKIND_R4
-#else
+#elif defined(REAL8)
 #define ESMF_KIND_RX ESMF_KIND_R8
 #define ESMF_TYPEKIND_RX ESMF_TYPEKIND_R8
+#else
+#define ESMF_KIND_RX ESMF_KIND_R4
+#define ESMF_TYPEKIND_RX ESMF_TYPEKIND_R4
 #endif
 
 !-------------------------------------------------------------------------------
