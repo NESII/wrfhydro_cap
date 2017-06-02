@@ -690,7 +690,7 @@ module WRFHydro_NUOPC
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
         else
           field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_RX, rc=rc)
+            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_FIELD, rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 !         Create field with ungridded soil layer dimension
 !          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
@@ -727,7 +727,7 @@ module WRFHydro_NUOPC
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
         else
           field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_RX, rc=rc)
+            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_FIELD, rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 !         Create field with ungridded soil layer dimension
 !          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &

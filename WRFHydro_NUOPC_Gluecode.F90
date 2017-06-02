@@ -1013,10 +1013,10 @@ contains
     real, allocatable           :: latitude(:,:), longitude(:,:)
     integer, allocatable        :: mask(:,:)
     integer                     :: lbnd(2),ubnd(2)
-    real(ESMF_KIND_R8), pointer :: coordXcenter(:,:)
-    real(ESMF_KIND_R8), pointer :: coordYcenter(:,:)
-    real(ESMF_KIND_R8), pointer :: coordXcorner(:,:)
-    real(ESMF_KIND_R8), pointer :: coordYcorner(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordXcenter(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordYcenter(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordXcorner(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordYcorner(:,:)
     integer(ESMF_KIND_I4), pointer :: gridmask(:,:)
     integer                     :: i,j, i1,j1
 #ifdef DEBUG
@@ -1032,7 +1032,7 @@ contains
 
     WRFHYDRO_GridCreate = ESMF_GridCreate(name='WRFHYDRO_Grid_'//trim(nlst_rt(did)%hgrid), &
       distgrid=WRFHYDRO_DistGrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
-      coordTypeKind=ESMF_TYPEKIND_R8, &
+      coordTypeKind=ESMF_TYPEKIND_COORD, &
 !      gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,1/), &
       rc = rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
