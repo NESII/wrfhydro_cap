@@ -90,7 +90,7 @@ module wrfhydro_nuopc_gluecode
     real(ESMF_KIND_R8), dimension(:,:,:), pointer :: farrayPtr => null()
   endtype WRFHYDRO_Field
 
-  type(WRFHYDRO_Field),dimension(42) :: WRFHYDRO_FieldList = (/ &
+  type(WRFHYDRO_Field),dimension(44) :: WRFHYDRO_FieldList = (/ &
     WRFHYDRO_Field( & !(01)
       stdname='aerodynamic_roughness_length', units='m', &
       adImport=.FALSE.,adExport=.FALSE.), &
@@ -191,30 +191,36 @@ module wrfhydro_nuopc_gluecode
       stdname='soil_moisture_fraction_layer_4', units='kg m-2', &
       adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(34)
+      stdname='soil_porosity', units='1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(35)
       stdname='subsurface_runoff_amount', units='kg s-1 m-2', &
       adImport=.TRUE.,adExport=.TRUE.), &
-    WRFHYDRO_Field( & !(35)
+    WRFHYDRO_Field( & !(36)
       stdname='surface_runoff_amount', units='kg s-1 m-2', &
       adImport=.TRUE.,adExport=.TRUE.), &
-    WRFHYDRO_Field( & !(36)
+    WRFHYDRO_Field( & !(37)
       stdname='surface_snow_thickness', units='m', &
       adImport=.FALSE.,adExport=.TRUE.), & 
-    WRFHYDRO_Field( & !(37)
+    WRFHYDRO_Field( & !(38)
       stdname='soil_temperature_layer_1', units='K', &
       adImport=.TRUE.,adExport=.TRUE.), &
-    WRFHYDRO_Field( & !(38)
+    WRFHYDRO_Field( & !(39)
       stdname='soil_temperature_layer_2', units='K', &
       adImport=.TRUE.,adExport=.TRUE.), &
-    WRFHYDRO_Field( & !(39)
+    WRFHYDRO_Field( & !(40)
       stdname='soil_temperature_layer_3', units='K', &
       adImport=.TRUE.,adExport=.TRUE.), &
-    WRFHYDRO_Field( & !(40)
+    WRFHYDRO_Field( & !(41)
       stdname='soil_temperature_layer_4', units='K', &
       adImport=.TRUE.,adExport=.TRUE.), &
-    WRFHYDRO_Field( & !(41)
+    WRFHYDRO_Field( & !(42)
+      stdname='vegetation_type', units='1', &
+      adImport=.FALSE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(43)
       stdname='volume_fraction_of_total_water_in_soil', units='m3 m-3', &
       adImport=.FALSE.,adExport=.TRUE.), & 
-    WRFHYDRO_Field( & !(42)
+    WRFHYDRO_Field( & !(44)
       stdname='water_surface_height_above_reference_datum', units='m', &
       adImport=.FALSE.,adExport=.TRUE.)/)
 
@@ -416,7 +422,7 @@ contains
       ! clm4
       call HYDRO_ini(ntime,did=did,ix0=1,jx0=1)
     else
-      call HYDRO_ini(ntime,did,ix0=nx_local,jx0=ny_local,vegtyp=IVGTYP,soltyp=isltyp)
+      call HYDRO_ini(ntime,did,ix0=nx_local,jx0=ny_local)
     endif
 
     ! Initialize the timestep from driver timestep passed to cap
@@ -756,6 +762,9 @@ contains
         CASE ('soil_moisture_fraction_layer_4')
           call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
+        CASE ('soil_porosity')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smcmax1,rc=rc)
+          if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('subsurface_runoff_amount')
           call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%soldrain,rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return
@@ -773,6 +782,9 @@ contains
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_4')
           call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,4),rc=rc)
+          if(ESMF_STDERRORCHECK(rc)) return ! bail out
+        CASE ('vegetation_type')
+          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%vegtyp,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
           call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping import copy: "//trim(fieldNameList(fieldIndex)), &
