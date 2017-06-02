@@ -149,16 +149,16 @@ module wrfhydro_nuopc_gluecode
       stdname='inst_zonal_wind_height_lowest', units='m s-1', &
       adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(20)
-      stdname='liquid_fraction_of_soil_moisture_layer_1', units='kg m-2', &
+      stdname='liquid_fraction_of_soil_moisture_layer_1', units='m3 m-3', &
       adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(21)
-      stdname='liquid_fraction_of_soil_moisture_layer_2', units='kg m-2', &
+      stdname='liquid_fraction_of_soil_moisture_layer_2', units='m3 m-3', &
       adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(22)
-      stdname='liquid_fraction_of_soil_moisture_layer_3', units='kg m-2', &
+      stdname='liquid_fraction_of_soil_moisture_layer_3', units='m3 m-3', &
       adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(23)
-      stdname='liquid_fraction_of_soil_moisture_layer_4', units='kg m-2', &
+      stdname='liquid_fraction_of_soil_moisture_layer_4', units='m3 m-3', &
       adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(24)
       stdname='mean_cprec_rate', units='kg s-1 m-2', &
@@ -179,25 +179,25 @@ module wrfhydro_nuopc_gluecode
       stdname='mean_surface_albedo', units='lm lm-1', &
       adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(30)
-      stdname='soil_moisture_fraction_layer_1', units='kg m-2', &
+      stdname='soil_moisture_fraction_layer_1', units='m3 m-3', &
       adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(31)
-      stdname='soil_moisture_fraction_layer_2', units='kg m-2', &
+      stdname='soil_moisture_fraction_layer_2', units='m3 m-3', &
       adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(32)
-      stdname='soil_moisture_fraction_layer_3', units='kg m-2', &
+      stdname='soil_moisture_fraction_layer_3', units='m3 m-3', &
       adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(33)
-      stdname='soil_moisture_fraction_layer_4', units='kg m-2', &
+      stdname='soil_moisture_fraction_layer_4', units='m3 m-3', &
       adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(34)
       stdname='soil_porosity', units='1', &
       adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(35)
-      stdname='subsurface_runoff_amount', units='kg s-1 m-2', &
+      stdname='subsurface_runoff_amount', units='kg m-2', &
       adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(36)
-      stdname='surface_runoff_amount', units='kg s-1 m-2', &
+      stdname='surface_runoff_amount', units='kg m-2', &
       adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(37)
       stdname='surface_snow_thickness', units='m', &
