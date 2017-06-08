@@ -542,10 +542,12 @@ contains
     if(nlst_rt(did)%SUBRTSWCRT .eq.0  .and. &
       nlst_rt(did)%OVRTSWCRT .eq. 0 .and. &
       nlst_rt(did)%GWBASESWCRT .eq. 0) then
-      call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
-        file=FILENAME,rcToReturn=rc)
-      return  ! bail out
+       call ESMF_LogWrite("WRFHYDRO:  SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
+            ESMF_LOGMSG_WARNING)
+      !call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
+      !  msg="WRFHYDRO: SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
+      !  file=FILENAME,rcToReturn=rc)
+      !return  ! bail out
     endif
 
     if((.not. RT_DOMAIN(did)%initialized) .and. (nlst_rt(did)%rst_typ .eq. 1) ) then
