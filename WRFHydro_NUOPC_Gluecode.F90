@@ -412,18 +412,30 @@ contains
     nlst_rt(did)%startdate(1:19) = cpl_outdate(1:19)
     nlst_rt(did)%olddate(1:19) = cpl_outdate(1:19)
 
+#ifdef DEBUG
+    call ESMF_LogWrite("Enter CPL_LAND_INIT", ESMF_LOGMSG_INFO)
+#endif
     ! Initialize the internal Land <-> Hydro Coupling
     call CPL_LAND_INIT(x_start, x_end, y_start, y_end)
+#ifdef DEBUG
+    call ESMF_LogWrite("Exit CPL_LAND_INIT", ESMF_LOGMSG_INFO)
+#endif
 
     ! ntime used in HYDRO_ini
     ! Routing timestep set in HYDRO_ini
     ntime = 1
+#ifdef DEBUG
+    call ESMF_LogWrite("Enter HYDRO_ini", ESMF_LOGMSG_INFO)
+#endif
     if(sf_surface_physics .eq. 5) then
       ! clm4
       call HYDRO_ini(ntime,did=did,ix0=1,jx0=1)
     else
       call HYDRO_ini(ntime,did,ix0=nx_local,jx0=ny_local)
     endif
+#ifdef DEBUG
+    call ESMF_LogWrite("Exit HYDRO_ini", ESMF_LOGMSG_INFO)
+#endif
 
     ! Initialize the timestep from driver timestep passed to cap
     call ESMF_TimeIntervalGet(timestep,s_r8=dt,rc=rc)
@@ -901,6 +913,7 @@ contains
 
     ! Local Variables
     integer                     :: ierr
+    character(len=256)          :: errline
 
     ! NOAHLSM_OFFLINE namelist variables for NoahMP
     character(len=256) :: indir = " ", outdir = " "
@@ -976,10 +989,13 @@ contains
     endif
     read(hrldasConfigFH, NOAHLSM_OFFLINE, iostat=ierr)
     if (ierr /= 0) then
-      call ESMF_LogSetError(ESMF_RC_FILE_READ, &
-        msg="WRFHYDRO: Error reading HRLDAS config file: "//trim(hrldasConfigFile), &
-        file=FILENAME,rcToReturn=rc)
-      return  ! bail out
+       backspace(hrldasConfigFH)
+       read(hrldasConfigFH,fmt='(A)') errline
+       call ESMF_LogSetError(ESMF_RC_FILE_READ, &
+            msg="WRFHYDRO: Error reading HRLDAS config file: "//trim(hrldasConfigFile) &
+            //" LINE: "//trim(errline), &
+            file=FILENAME,rcToReturn=rc)
+       return  ! bail out
     endif
     close (hrldasConfigFH, iostat=ierr )
     if (ierr /= 0) then
@@ -1031,6 +1047,7 @@ contains
     real(ESMF_KIND_COORD), pointer :: coordYcorner(:,:)
     integer(ESMF_KIND_I4), pointer :: gridmask(:,:)
     integer                     :: i,j, i1,j1
+    character(len=16)           :: xlat_corner_name, xlon_corner_name
 #ifdef DEBUG
     character(ESMF_MAXSTR)      :: logMsg
 #endif
@@ -1135,15 +1152,29 @@ contains
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
     ! CORNERS
-    if ( NUOPC_NetcdfIsPresent("XLAT_CORNER",configFile%GEO_STATIC_FLNM) .AND. &
-      NUOPC_NetcdfIsPresent("XLONG_CORNER",configFile%GEO_STATIC_FLNM)) then
+    ! The original WPS implementation used the _CORNER names
+    ! but it was then changes to the _C names.  Support both
+    ! options.
+    if (NUOPC_NetcdfIsPresent("XLAT_CORNER",configFile%GEO_STATIC_FLNM) .AND. &
+         NUOPC_NetcdfIsPresent("XLONG_CORNER",configFile%GEO_STATIC_FLNM)) then
+       xlat_corner_name = "XLAT_CORNER"
+       xlon_corner_name = "XLONG_CORNER"
+    else if (NUOPC_NetcdfIsPresent("XLAT_C",configFile%GEO_STATIC_FLNM) .AND. &
+         NUOPC_NetcdfIsPresent("XLONG_C",configFile%GEO_STATIC_FLNM)) then
+       xlat_corner_name = "XLAT_C"
+       xlon_corner_name = "XLONG_C"
+    else
+       xlat_corner_name = ""
+       xlon_corner_name = ""
+    endif
 
+    if (trim(xlat_corner_name) /= "") then
       ! Get Local Latitude (lat)
       allocate(latitude(nx_local+1,ny_local+1),stat=stat)
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
         msg='WRFHYDRO: Allocation of corner latitude memory failed.', &
         file=FILENAME, rcToReturn=rc)) return ! bail out
-      call NUOPC_NetcdfReadIXJX("XLAT_CORNER",configFile%GEO_STATIC_FLNM, &
+      call NUOPC_NetcdfReadIXJX(trim(xlat_corner_name),configFile%GEO_STATIC_FLNM, &
         (/x_start,y_start/),latitude,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -1152,7 +1183,7 @@ contains
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
        msg='WRFHYDRO: Allocation of corner longitude memory failed.', &
        file=FILENAME, rcToReturn=rc)) return ! bail out
-      call NUOPC_NetcdfReadIXJX("XLONG_CORNER",configFile%GEO_STATIC_FLNM, &
+      call NUOPC_NetcdfReadIXJX(trim(xlon_corner_name),configFile%GEO_STATIC_FLNM, &
         (/x_start,y_start/),longitude,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
