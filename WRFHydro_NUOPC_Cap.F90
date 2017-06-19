@@ -1123,7 +1123,7 @@ subroutine CheckImport(gcomp, rc)
     do while (is%wrap%stepAccum(1) >= timestep)
     ! call wrfhydro advance
       call ESMF_LogWrite( &
-        'WRFHYDRO: Advance Slice='//trim(sStr)//" DID="//trim(is%wrap%hgrid), &
+        'WRFHYDRO: Advance Slice='//trim(sStr)//" HGRID="//trim(is%wrap%hgrid), &
         ESMF_LOGMSG_INFO)
       call wrfhydro_nuopc_run(is%wrap%did,is%wrap%mode(1), &
         is%wrap%clock(1),is%wrap%NStateImp(1),is%wrap%NStateExp(1),rc)
