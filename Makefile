@@ -80,6 +80,7 @@ MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_hydro_drv.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_rt_data.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_namelist.mod)
 MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_hydro_io.mod)
+MODEL_MODS   += $(abspath $(MODEL_MODDIR)/module_lsm_forcing.mod)
 
 MODEL_FILES  := $(MODEL_LIB) $(MODEL_MODS)
 

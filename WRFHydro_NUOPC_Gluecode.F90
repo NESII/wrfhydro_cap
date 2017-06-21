@@ -37,7 +37,10 @@ module wrfhydro_nuopc_gluecode
   use module_rt_data, only: &
     rt_domain
   use module_namelist, only: &
-    nlst_rt
+    nlst_rt, &
+    read_rt_nlst
+  use module_lsm_forcing, only: &
+    read_ldasout
 !  use module_gw_gw2d_data, only: &
 !    gw2d
 !  use module_domain, only: &
@@ -224,44 +227,19 @@ module wrfhydro_nuopc_gluecode
       stdname='water_surface_height_above_reference_datum', units='m', &
       adImport=.FALSE.,adExport=.TRUE.)/)
 
-  ! HRLDAS Configuration
-  character(len=ESMF_MAXPATHLEN) :: hrldasConfigFile = "namelist.hrldas"
-  INTEGER, PARAMETER             :: hrldasConfigFH = 30
-
   ! PARAMETERS
-  INTEGER, PARAMETER    :: MAX_SOIL_LEVELS = 10   ! maximum soil levels in namelist
-
-  ! WRFHYDRO Config File
-  type :: WRFHYDRO_ConfigFile
-    character(len=256)                  :: indir = "UNINITIALIZED"
-    character(len=256)                  :: GEO_STATIC_FLNM = "UNINITIALIZED"
-    integer                             :: nsoil = UNINITIALIZED
-    integer                             :: start_year = UNINITIALIZED
-    integer                             :: start_month = UNINITIALIZED
-    integer                             :: start_day = UNINITIALIZED
-    integer                             :: start_hour = UNINITIALIZED
-    integer                             :: start_min = UNINITIALIZED
-    integer                             :: FORCING_TIMESTEP = UNINITIALIZED
-    integer                             :: NOAH_TIMESTEP = UNINITIALIZED
-    integer                             :: OUTPUT_TIMESTEP = UNINITIALIZED
-    real, dimension(MAX_SOIL_LEVELS)    :: soil_thick_input = UNINITIALIZED
-  end type WRFHYDRO_ConfigFile
-
-  ! Configuration
-  type(WRFHYDRO_ConfigFile) :: configFile
-  integer                   :: num_nests = UNINITIALIZED
-  integer                   :: num_tiles
-  integer                   :: nx_global
-  integer                   :: ny_global
-  integer                   :: x_start
-  integer                   :: x_end
-  integer                   :: y_start
-  integer                   :: y_end
-  integer                   :: nx_local
-  integer                   :: ny_local
-  integer                   :: sf_surface_physics = UNINITIALIZED
-  real,dimension(:),allocatable      :: zs ! zoil layer depths
-  integer,dimension(:,:),allocatable :: IVGTYP, isltyp
+  character(len=ESMF_MAXSTR) :: indir = 'WRFHYDRO_FORCING'
+  integer                    :: num_nests = UNINITIALIZED
+  integer                    :: num_tiles
+  integer                    :: nx_global
+  integer                    :: ny_global
+  integer                    :: x_start
+  integer                    :: x_end
+  integer                    :: y_start
+  integer                    :: y_end
+  integer                    :: nx_local
+  integer                    :: ny_local
+  integer                    :: sf_surface_physics = UNINITIALIZED
 
   ! added to consider the adaptive time step from driver.
   real                  :: dt0 = UNINITIALIZED
@@ -271,7 +249,7 @@ module wrfhydro_nuopc_gluecode
   ! added for check soil moisture and soiltype
   integer               :: checkSOIL_flag = UNINITIALIZED
   ! added to track the driver clock
-  character(len=19)     :: start_time = "0000-00-00_00:00:00"
+  character(len=19)     :: startTimeStr = "0000-00-00_00:00:00"
 
   type(ESMF_DistGrid)   :: WRFHYDRO_DistGrid ! One DistGrid created with ConfigFile dimensions
   character(len=ESMF_MAXSTR)  :: logMsg
@@ -284,17 +262,17 @@ contains
 #undef METHOD
 #define METHOD "wrfhydro_nuopc_ini"
 
-  subroutine wrfhydro_nuopc_ini(did,vm,clock,rc)
+  subroutine wrfhydro_nuopc_ini(did,vm,clock,forcingDir,rc)
     integer, intent(in)                     :: did
     type(ESMF_VM),intent(in)                :: vm
     type(ESMF_Clock),intent(in)             :: clock
+    character(len=*)                        :: forcingDir
     integer, intent(out)                    :: rc
 
     ! local variables
     integer                     :: localPet
     integer                     :: stat
     type(ESMF_DistGridConnection), allocatable :: connectionList(:)
-    integer                     :: ntime
     integer                     :: i
     type(ESMF_Time)             :: startTime
     type(ESMF_TimeInterval)     :: timeStep
@@ -314,47 +292,40 @@ contains
       mpiCommunicator=HYDRO_COMM_WORLD, rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-    ! Read information from config file
-    call config_file_read(rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+    ! Set focing directory
+    indir=forcingDir
 
-    ! Check number of soil layers
-    if(configFile%nsoil .lt. 1) then
-      call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: Number of soil layers less than 1!", &
-        file=FILENAME,rcToReturn=rc)
-      return  ! bail out
-    elseif(configFile%nsoil .gt. MAX_SOIL_LEVELS) then
-      call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: Number of soil layers greater than MAX!", &
-        file=FILENAME,rcToReturn=rc)
-      return  ! bail out
-    endif
-    ! Allocate Memory & Initialize Soil Layer Depths
-    allocate(zs(configFile%nsoil),stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of soil layer depths memory failed.', &
-      file=FILENAME, rcToReturn=rc)) return ! bail out
-    zs(1) = 0-configFile%soil_thick_input(1)
-    do i=2,configFile%nsoil
-      zs(i) = zs(i-1)-configFile%soil_thick_input(i)
-    enddo
-
-    ! Set Model Soil Depths (Must be negative)
-    nlst_rt(did)%nsoil = configFile%nsoil
-    call mpp_land_bcast_int1 (nlst_rt(did)%nsoil)
-    allocate(nlst_rt(did)%zsoil8(nlst_rt(did)%nsoil),stat=stat)
+    ! Set default namelist values
+    nlst_rt(did)%nsoil=4
+    allocate(nlst_rt(did)%zsoil8(4),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg='WRFHYDRO: Allocation of model soil depths memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    if(zs(1) < 0) then
-      nlst_rt(did)%zsoil8(1:nlst_rt(did)%nsoil) = zs(1:nlst_rt(did)%nsoil)
-    else
-      nlst_rt(did)%zsoil8(1:nlst_rt(did)%nsoil) = -1*zs(1:nlst_rt(did)%nsoil)
+    nlst_rt(did)%zsoil8(1:4)=(/-0.1,-0.4,-1.0,-2.0/)
+    nlst_rt(did)%geo_static_flnm = "geo_em.d01.nc"
+    nlst_rt(did)%geo_finegrid_flnm = "fulldom_hires_hydrofile.d01.nc"
+    nlst_rt(did)%sys_cpl = 2
+    nlst_rt(did)%IGRID = did
+    write(nlst_rt(did)%hgrid,'(I1)') did
+
+    ! Read information from hydro.namelist config file
+    call read_rt_nlst(nlst_rt(did))
+
+#if DEBUG
+    call WRFHYDRO_nlstLog(did,MODNAME,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+#endif
+
+    if(nlst_rt(did)%nsoil .gt. 4) then
+      call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
+        msg="WRFHYDRO: Maximum soil levels supported is 4.", &
+        file=FILENAME,rcToReturn=rc)
+      return  ! bail out
     endif
 
     call MPP_LAND_INIT()  ! required before get_file_dimension
-    call get_file_dimension(fileName=configFile%GEO_STATIC_FLNM,ix=nx_global,jx=ny_global)
+    call get_file_dimension(fileName=nlst_rt(did)%geo_static_flnm,& 
+      ix=nx_global,jx=ny_global)
 
 #ifdef DEBUG
     write (logMsg,"(A,2(I0,A))") MODNAME//": Global Dimensions = (", &
@@ -391,56 +362,51 @@ contains
     call set_local_indices(rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
-    ! Allocate Memory & Initialize Vegetation Type and Soil Type
-    ! To be implemented - Replace with read from config file read or coupling
-    allocate(IVGTYP(x_start:x_end,y_start:y_end), &
-      isltyp(x_start:x_end,y_start:y_end),stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of initial vegetation and soil type memory failed.', &
-      file=FILENAME, rcToReturn=rc)) return ! bail out
-    IVGTYP = 0
-    isltyp = 0
-
-    ! Initialize the time using WRFHYDRO Config File
-    call ESMF_ClockGet(clock,timestep=timestep,startTime=startTime,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
-    call WRFHYDRO_TimeToString(startTime,timestr=start_time,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
-    cpl_outdate = start_time(1:19)
-    nlst_rt(did)%startdate(1:19) = cpl_outdate(1:19)
-    nlst_rt(did)%olddate(1:19) = cpl_outdate(1:19)
-
 #ifdef DEBUG
-    call ESMF_LogWrite("Enter CPL_LAND_INIT", ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(MODNAME//": Enter CPL_LAND_INIT", ESMF_LOGMSG_INFO)
 #endif
     ! Initialize the internal Land <-> Hydro Coupling
     call CPL_LAND_INIT(x_start, x_end, y_start, y_end)
 #ifdef DEBUG
-    call ESMF_LogWrite("Exit CPL_LAND_INIT", ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(MODNAME//": Exit CPL_LAND_INIT", ESMF_LOGMSG_INFO)
 #endif
 
-    ! ntime used in HYDRO_ini
     ! Routing timestep set in HYDRO_ini
-    ntime = 1
 #ifdef DEBUG
-    call ESMF_LogWrite("Enter HYDRO_ini", ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(MODNAME//": Enter HYDRO_ini", ESMF_LOGMSG_INFO)
 #endif
     if(sf_surface_physics .eq. 5) then
       ! clm4
-      call HYDRO_ini(ntime,did=did,ix0=1,jx0=1)
+      ! Use wrfinput vegetation type and soil type
+      call HYDRO_ini(ntime=1,did=did,ix0=1,jx0=1)
     else
-      call HYDRO_ini(ntime,did,ix0=nx_local,jx0=ny_local)
+      ! Use wrfinput vegetation type and soil type
+      call HYDRO_ini(ntime=1,did=did,ix0=nx_local,jx0=ny_local)
     endif
 #ifdef DEBUG
-    call ESMF_LogWrite("Exit HYDRO_ini", ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite(MODNAME//": Exit HYDRO_ini", ESMF_LOGMSG_INFO)
 #endif
 
-    ! Initialize the timestep from driver timestep passed to cap
+    ! Override the clock configuration in hyro.namelist
+    call ESMF_ClockGet(clock,timestep=timestep,startTime=startTime,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
     call ESMF_TimeIntervalGet(timestep,s_r8=dt,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
     nlst_rt(did)%dt = dt
+    call WRFHYDRO_TimeToString(startTime,timestr=startTimeStr,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+
+    read (startTimeStr(1:4),"(I)")   nlst_rt(did)%START_YEAR
+    read (startTimeStr(6:7),"(I)")   nlst_rt(did)%START_MONTH
+    read (startTimeStr(9:10),"(I)")  nlst_rt(did)%START_DAY
+    read (startTimeStr(12:13),"(I)") nlst_rt(did)%START_HOUR
+    read (startTimeStr(15:16),"(I)") nlst_rt(did)%START_MIN
+    nlst_rt(did)%startdate(1:19) = startTimeStr(1:19)
+    nlst_rt(did)%olddate(1:19)   = startTimeStr(1:19)
+    nlst_rt(did)%dt = dt
+
+    cpl_outdate = startTimeStr(1:19)
+
     if(nlst_rt(did)%dt .le. 0) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
         msg="WRFHYDRO: Timestep less than 1 is not supported!", &
@@ -557,20 +523,20 @@ contains
 
       select case (mode)
         case (WRFHYDRO_Offline)
-          call read_forc_ldasout(nlst_rt(did)%olddate(1:19), &
-            nlst_rt(did)%hgrid, &
-            trim(configFile%indir), nlst_rt(did)%dt, &
-            rt_domain(did)%ix,rt_domain(did)%jx, &
-            rt_domain(did)%infxsrt,rt_domain(did)%soldrain)
+          call read_ldasout(olddate=nlst_rt(did)%olddate(1:19), &
+            hgrid=nlst_rt(did)%hgrid, &
+            indir=trim(indir), dt=nlst_rt(did)%dt, &
+            ix=rt_domain(did)%ix,jx=rt_domain(did)%jx, &
+            infxsrt=rt_domain(did)%infxsrt,soldrain=rt_domain(did)%soldrain)
         case (WRFHYDRO_Coupled)
           call copy_import_fields(did, importState, rc)
           if (ESMF_STDERRORCHECK(rc)) return
         case (WRFHYDRO_Hybrid)
-          call read_forc_ldasout(nlst_rt(did)%olddate(1:19), &
-            nlst_rt(did)%hgrid, &
-            trim(configFile%indir), nlst_rt(did)%dt, &
-            rt_domain(did)%ix,rt_domain(did)%jx, &
-            rt_domain(did)%infxsrt,rt_domain(did)%soldrain)
+          call read_ldasout(olddate=nlst_rt(did)%olddate(1:19), &
+            hgrid=nlst_rt(did)%hgrid, &
+            indir=trim(indir), dt=nlst_rt(did)%dt, &
+            ix=rt_domain(did)%ix,jx=rt_domain(did)%jx, &
+            infxsrt=rt_domain(did)%infxsrt,soldrain=rt_domain(did)%soldrain)
           call copy_import_fields(did, importState, rc)
           if (ESMF_STDERRORCHECK(rc)) return
         case default
@@ -621,12 +587,6 @@ contains
     rc = ESMF_SUCCESS
 
     ! WRF-Hydro finish routine cannot be called because it stops MPI
-
-    deallocate(zs,IVGTYP,isltyp,stat=stat)
-    if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Deallocation of soil layer depths, initial vegetation type, '// &
-        'and initial soil type memory failed.', &
-      file=FILENAME,rcToReturn=rc)) return ! bail out
 
 !    DCR - Turned off to let the model deallocate memory
 !    deallocate(nlst_rt(did)%zsoil8)
@@ -908,127 +868,6 @@ contains
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "config_file_read"
-
-  subroutine config_file_read(rc)
-    integer, intent(out)                    :: rc
-
-    ! Local Variables
-    integer                     :: ierr
-    character(len=256)          :: errline
-
-    ! NOAHLSM_OFFLINE namelist variables for NoahMP
-    character(len=256) :: indir = " ", outdir = " "
-    character(len=256) :: hrldas_constants_file = " "
-    character(len=256) :: spatial_filename = " ", mmf_runoff_file = " "
-    integer            :: start_year, start_month, start_day, start_hour, start_min
-    integer            :: kday, khour, forcing_timestep, noah_timestep
-    character(len=256) :: restart_filename_requested = " "
-    integer            :: restart_frequency_hours
-    integer            :: rst_bi_in, rst_bi_out
-    integer            :: output_timestep, split_output_count = 1
-    integer            :: nsoil, zlvl
-    real, dimension(MAX_SOIL_LEVELS) :: soil_thick_input       ! depth to soil interfaces from namelist [m]
-    integer            :: finemesh, finemesh_factor
-    integer            :: dynamic_veg_option, canopy_stomatal_resistance_option
-    integer            :: btr_option, runoff_option, surface_drag_option
-    integer            :: frozen_soil_option, supercooled_water_option
-    integer            :: radiative_transfer_option, snow_albedo_option
-    integer            :: pcp_partition_option, tbot_option
-    integer            :: temp_time_scheme_option
-    integer            :: glacier_option, surface_resistance_option
-    integer            :: xstart = 1, ystart = 1, xend = 0, yend = 0
-    character(len=256) :: external_fpar_filename_template = " "
-    character(len=256) :: external_lai_filename_template = " "
-    integer            :: forc_typ, HRLDAS_ini_typ, snow_assim
-    character(len=256) :: GEO_STATIC_FLNM = " "
-
- namelist / NOAHLSM_OFFLINE /    &
- INDIR, OUTDIR, &
- HRLDAS_CONSTANTS_FILE, SPATIAL_FILENAME, MMF_RUNOFF_FILE, &
- START_YEAR, START_MONTH, START_DAY, START_HOUR, START_MIN, &
- KDAY,  KHOUR, FORCING_TIMESTEP, NOAH_TIMESTEP, &
- RESTART_FILENAME_REQUESTED, RESTART_FREQUENCY_HOURS, &
- RST_BI_IN, RST_BI_OUT, &
- OUTPUT_TIMESTEP, SPLIT_OUTPUT_COUNT, &
- NSOIL, SOIL_THICK_INPUT, ZLVL, &
- FINEMESH, FINEMESH_FACTOR, &
- DYNAMIC_VEG_OPTION, CANOPY_STOMATAL_RESISTANCE_OPTION, BTR_OPTION, &
- RUNOFF_OPTION, SURFACE_DRAG_OPTION, FROZEN_SOIL_OPTION, &
- SUPERCOOLED_WATER_OPTION, RADIATIVE_TRANSFER_OPTION, SNOW_ALBEDO_OPTION, &
- PCP_PARTITION_OPTION, TBOT_OPTION, TEMP_TIME_SCHEME_OPTION, GLACIER_OPTION, &
- SURFACE_RESISTANCE_OPTION, &
- EXTERNAL_FPAR_FILENAME_TEMPLATE, EXTERNAL_LAI_FILENAME_TEMPLATE, &
- XSTART, XEND, YSTART, YEND, &
- EXTERNAL_FPAR_FILENAME_TEMPLATE, EXTERNAL_LAI_FILENAME_TEMPLATE, &
- FORC_TYP, HRLDAS_INI_TYP, GEO_STATIC_FLNM, SNOW_ASSIM
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    rc = ESMF_SUCCESS
-
-    configFile%nsoil = 0
-    configFile%indir = " "
-    configFile%GEO_STATIC_FLNM = " "
-    configFile%start_year = 0
-    configFile%start_month = 0
-    configFile%start_day = 0
-    configFile%start_hour = 0
-    configFile%start_min = 0
-    configFile%FORCING_TIMESTEP = 0
-    configFile%NOAH_TIMESTEP = 0
-    configFile%OUTPUT_TIMESTEP = 0
-    configFile%soil_thick_input = 0
-
-    open(hrldasConfigFH, file=trim(hrldasConfigFile), form="FORMATTED", iostat=ierr)
-    if (ierr /= 0) then
-      call ESMF_LogSetError(ESMF_RC_FILE_OPEN, &
-        msg="WRFHYDRO: Error opening HRLDAS config file: "//trim(hrldasConfigFile), &
-        file=FILENAME,rcToReturn=rc)
-      return  ! bail out
-    endif
-    read(hrldasConfigFH, NOAHLSM_OFFLINE, iostat=ierr)
-    if (ierr /= 0) then
-       backspace(hrldasConfigFH)
-       read(hrldasConfigFH,fmt='(A)') errline
-       call ESMF_LogSetError(ESMF_RC_FILE_READ, &
-            msg="WRFHYDRO: Error reading HRLDAS config file: "//trim(hrldasConfigFile) &
-            //" LINE: "//trim(errline), &
-            file=FILENAME,rcToReturn=rc)
-       return  ! bail out
-    endif
-    close (hrldasConfigFH, iostat=ierr )
-    if (ierr /= 0) then
-      call ESMF_LogSetError(ESMF_RC_FILE_CLOSE, &
-        msg="WRFHYDRO: Error closing HRLDAS config file: "//trim(hrldasConfigFile), &
-        file=FILENAME,rcToReturn=rc)
-      return  ! bail out
-    endif
-
-    configFile%indir = trim(indir)
-    configFile%GEO_STATIC_FLNM = trim(GEO_STATIC_FLNM)
-    configFile%nsoil = nsoil
-    configFile%start_year = start_year
-    configFile%start_month = start_month
-    configFile%start_day = start_day
-    configFile%start_hour = start_hour
-    configFile%start_min = start_min
-    configFile%FORCING_TIMESTEP = forcing_timestep
-    configFile%NOAH_TIMESTEP = noah_timestep
-    configFile%OUTPUT_TIMESTEP = output_timestep
-    configFile%soil_thick_input = soil_thick_input
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
 #define METHOD "WRFHYDRO_GridCreate"
 
   function WRFHYDRO_GridCreate(did,rc)
@@ -1075,7 +914,7 @@ contains
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg='WRFHYDRO: Allocation of latitude memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("XLAT_M",configFile%GEO_STATIC_FLNM, &
+    call NUOPC_NetcdfReadIXJX("XLAT_M",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),latitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -1084,7 +923,7 @@ contains
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg='WRFHYDRO: Allocation of longitude memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("XLONG_M",configFile%GEO_STATIC_FLNM, &
+    call NUOPC_NetcdfReadIXJX("XLONG_M",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),longitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -1126,7 +965,7 @@ contains
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg='WRFHYDRO: Allocation of mask memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("LANDMASK",configFile%GEO_STATIC_FLNM, &
+    call NUOPC_NetcdfReadIXJX("LANDMASK",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),mask,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -1157,12 +996,12 @@ contains
     ! The original WPS implementation used the _CORNER names
     ! but it was then changes to the _C names.  Support both
     ! options.
-    if (NUOPC_NetcdfIsPresent("XLAT_CORNER",configFile%GEO_STATIC_FLNM) .AND. &
-         NUOPC_NetcdfIsPresent("XLONG_CORNER",configFile%GEO_STATIC_FLNM)) then
+    if (NUOPC_NetcdfIsPresent("XLAT_CORNER",nlst_rt(did)%geo_static_flnm) .AND. &
+         NUOPC_NetcdfIsPresent("XLONG_CORNER",nlst_rt(did)%geo_static_flnm)) then
        xlat_corner_name = "XLAT_CORNER"
        xlon_corner_name = "XLONG_CORNER"
-    else if (NUOPC_NetcdfIsPresent("XLAT_C",configFile%GEO_STATIC_FLNM) .AND. &
-         NUOPC_NetcdfIsPresent("XLONG_C",configFile%GEO_STATIC_FLNM)) then
+    else if (NUOPC_NetcdfIsPresent("XLAT_C",nlst_rt(did)%geo_static_flnm) .AND. &
+         NUOPC_NetcdfIsPresent("XLONG_C",nlst_rt(did)%geo_static_flnm)) then
        xlat_corner_name = "XLAT_C"
        xlon_corner_name = "XLONG_C"
     else
@@ -1176,7 +1015,7 @@ contains
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
         msg='WRFHYDRO: Allocation of corner latitude memory failed.', &
         file=FILENAME, rcToReturn=rc)) return ! bail out
-      call NUOPC_NetcdfReadIXJX(trim(xlat_corner_name),configFile%GEO_STATIC_FLNM, &
+      call NUOPC_NetcdfReadIXJX(trim(xlat_corner_name),nlst_rt(did)%geo_static_flnm, &
         (/x_start,y_start/),latitude,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -1185,7 +1024,7 @@ contains
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
        msg='WRFHYDRO: Allocation of corner longitude memory failed.', &
        file=FILENAME, rcToReturn=rc)) return ! bail out
-      call NUOPC_NetcdfReadIXJX(trim(xlon_corner_name),configFile%GEO_STATIC_FLNM, &
+      call NUOPC_NetcdfReadIXJX(trim(xlon_corner_name),nlst_rt(did)%geo_static_flnm, &
         (/x_start,y_start/),longitude,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -1417,7 +1256,7 @@ contains
   subroutine WRFHYDRO_set_timestep(did,dt,rc)
     ! ARGUMENTS
     integer, intent(in)           :: did
-    real(ESMF_KIND_R8),intent(in) :: dt
+    real                          :: dt
     integer, intent(out)          :: rc
 
 #ifdef DEBUG
@@ -1667,123 +1506,6 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Log Utilities
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "WRFHYDRO_ConfigFileLog"
-
-  subroutine WRFHYDRO_ConfigFileLog(label,rc)
-    ! ARGUMENTS
-    character(len=*),intent(in),optional :: label
-    integer, intent(out)                 :: rc
-
-    ! LOCAL VARIABLES
-    character(len=64)                    :: l_label
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    rc = ESMF_SUCCESS
-
-    if (present(label)) then
-      l_label = label
-    else
-      l_label = 'WRFHYDRO: ConfigFileLog'
-    endif
-
-    write (logMsg,"(2A)") trim(l_label)//" INDIR=",trim(configFile%indir)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(2A)") trim(l_label)//" Geostatic filename=",trim(configFile%GEO_STATIC_FLNM)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Number of soil layers=",configFile%nsoil
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,5(I0,A))") trim(l_label)//" Start (yr-mn-dy_hr:mn): (", &
-      configFile%start_year,"-", &
-      configFile%start_month,"-", &
-      configFile%start_day,"_", &
-      configFile%start_hour,":", &
-      configFile%start_min,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Forcing timestep=",configFile%FORCING_TIMESTEP
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Noah timestep=",configFile%NOAH_TIMESTEP
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Output timestep=",configFile%OUTPUT_TIMESTEP
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,2(F0.3,A))") trim(l_label)//" Soil thickness (1:MAX): (", &
-      configFile%soil_thick_input(1),",", &
-      configFile%soil_thick_input(configFile%nsoil),")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "WRFHYDRO_ConfigLog"
-
-  subroutine WRFHYDRO_ConfigLog(label,rc)
-    ! ARGUMENTS
-    character(len=*),intent(in),optional :: label
-    integer,intent(out)                  :: rc
-
-    ! LOCAL VARIABLES
-    character(len=64)                    :: l_label
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    rc = ESMF_SUCCESS
-
-    if (present(label)) then
-      l_label = label
-    else
-      l_label = 'WRFHYDRO: ConfigLog'
-    endif 
-
-    write (logMsg, "(A,I0)") trim(l_label)//" Number of nests=",num_nests
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,I0)") trim(l_label)//" Number of tiles=",num_tiles
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,I0)") trim(l_label)//" Surface physics=",sf_surface_physics
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,L1)") trim(l_label)//" Check soil=",checkSOIL_flag
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,2(I0,A))") trim(l_label)//" Soil depth (1,MAX): (", &
-     zs(1),",", &
-     zs(configFile%nsoil),")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,2(I0,A))") trim(l_label)//" Global (NX,NY): (", &
-      nx_global,",",ny_global,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,2(I0,A))") trim(l_label)//" Local (NX,NY): (", &
-      nx_local,",",ny_local,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,4(I0,A))") trim(l_label)//" Start (X,Y) End (X,Y): (", &
-      x_start,",",y_start,") (", &
-      x_end,",",y_end,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,2(I0,A))") trim(l_label)//" Vegetation type (START,END): (", &
-      IVGTYP(x_start,y_start),",",IVGTYP(x_end,y_end),")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(A,2(I0,A))") trim(l_label)//" SL type (START,END): (", &
-      isltyp(x_start,y_start),",",isltyp(x_end,y_end),")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg, "(2A)") trim(l_label)//" Couple outdate=",cpl_outdate
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
   !-----------------------------------------------------------------------------
 
 #undef METHOD
