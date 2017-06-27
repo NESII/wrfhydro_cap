@@ -425,31 +425,40 @@ module WRFHydro_NUOPC
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
     ! Time Step
-    call ESMF_AttributeGet(gcomp, name="timestep", value=value, defaultValue="default", &
+    call ESMF_AttributeGet(gcomp, name="time_step", value=value, defaultValue="0", &
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    is%wrap%timeStepInt = ESMF_UtilString2Int(value, &
-      specialStringList=(/"default","yearly","hourly","daily"/), &
-      specialValueList=(/0,31536000,3600,86400/), rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    read (value,*,iostat=stat) is%wrap%timeStepInt
+    if (stat /= 0) then
+      call ESMF_LogSetError(ESMF_FAILURE, &
+        msg=METHOD//": Cannot convert "//trim(value)//" to integer.", &
+        line=__LINE__,file=__FILE__,rcToReturn=rc)
+      return  ! bail out
+    endif
 
     ! Restart Write Interval
-    call ESMF_AttributeGet(gcomp, name="restart_interval", value=value, defaultValue="default", &
+    call ESMF_AttributeGet(gcomp, name="restart_interval", value=value, defaultValue="0", &
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    is%wrap%rstrtIntvlInt = ESMF_UtilString2Int(value, &
-      specialStringList=(/"default","yearly","hourly","daily"/), &
-      specialValueList=(/0,31536000,3600,86400/), rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    read (value,*,iostat=stat) is%wrap%rstrtIntvlInt
+    if (stat /= 0) then
+      call ESMF_LogSetError(ESMF_FAILURE, &
+        msg=METHOD//": Cannot convert "//trim(value)//" to integer.", &
+        line=__LINE__,file=__FILE__,rcToReturn=rc)
+      return  ! bail out
+    endif
 
     ! Debug Write Interval
-    call ESMF_AttributeGet(gcomp, name="debug_interval", value=value, defaultValue="default", &
+    call ESMF_AttributeGet(gcomp, name="debug_interval", value=value, defaultValue="0", &
       convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    is%wrap%debugIntvlInt = ESMF_UtilString2Int(value, &
-      specialStringList=(/"default","yearly","hourly","daily"/), &
-      specialValueList=(/0,31536000,3600,86400/), rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
+    read (value,*,iostat=stat) is%wrap%debugIntvlInt
+    if (stat /= 0) then
+      call ESMF_LogSetError(ESMF_FAILURE, &
+        msg=METHOD//": Cannot convert "//trim(value)//" to integer.", &
+        line=__LINE__,file=__FILE__,rcToReturn=rc)
+      return  ! bail out
+    endif
 
     ! Determine Verbosity
     call ESMF_AttributeGet(gcomp, name="verbosity", value=value, &

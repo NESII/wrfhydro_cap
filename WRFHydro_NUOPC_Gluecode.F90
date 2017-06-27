@@ -1513,7 +1513,7 @@ contains
 
   subroutine WRFHYDRO_nlstLog(did,label,rc)
     ! ARGUMENTS
-    integer,intent(inout)                :: did
+    integer,intent(in)                   :: did
     character(len=*),intent(in),optional :: label
     integer,intent(out)                  :: rc
 
