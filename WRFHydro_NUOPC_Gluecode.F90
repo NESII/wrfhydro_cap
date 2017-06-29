@@ -183,16 +183,16 @@ module wrfhydro_nuopc_gluecode
       adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(30)
       stdname='soil_moisture_fraction_layer_1', units='m3 m-3', &
-      adImport=.TRUE.,adExport=.FALSE.), &
+      adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(31)
       stdname='soil_moisture_fraction_layer_2', units='m3 m-3', &
-      adImport=.TRUE.,adExport=.FALSE.), &
+      adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(32)
       stdname='soil_moisture_fraction_layer_3', units='m3 m-3', &
-      adImport=.TRUE.,adExport=.FALSE.), &
+      adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(33)
       stdname='soil_moisture_fraction_layer_4', units='m3 m-3', &
-      adImport=.TRUE.,adExport=.FALSE.), &
+      adImport=.TRUE.,adExport=.TRUE.), &
     WRFHYDRO_Field( & !(34)
       stdname='soil_porosity', units='1', &
       adImport=.FALSE.,adExport=.FALSE.), &
