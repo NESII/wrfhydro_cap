@@ -252,7 +252,7 @@ module wrfhydro_nuopc_gluecode
   character(len=19)     :: startTimeStr = "0000-00-00_00:00:00"
 
   type(ESMF_DistGrid)   :: WRFHYDRO_DistGrid ! One DistGrid created with ConfigFile dimensions
-  character(len=ESMF_MAXSTR)  :: logMsg
+  character(len=512)  :: logMsg
 
   !-----------------------------------------------------------------------------
   ! Model Glue Code
@@ -713,53 +713,53 @@ contains
 
       SELECT CASE (fieldNameList(fieldIndex))
         CASE ('liquid_fraction_of_soil_moisture_layer_1')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,1),rc=rc)
+          call NUOPC_CopyFieldToArray(srcfield=field,dstArray=rt_domain(did)%sh2ox(:,:,1),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('liquid_fraction_of_soil_moisture_layer_2')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,2),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%sh2ox(:,:,2),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('liquid_fraction_of_soil_moisture_layer_3')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,3),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%sh2ox(:,:,3),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('liquid_fraction_of_soil_moisture_layer_4')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%sh2ox(:,:,4),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%sh2ox(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_moisture_fraction_layer_1')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,1),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,1),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_moisture_fraction_layer_2')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,2),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,2),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_moisture_fraction_layer_3')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,3),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,3),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_moisture_fraction_layer_4')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smc(:,:,4),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_porosity')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%smcmax1,rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smcmax1,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('subsurface_runoff_amount')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%soldrain,rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%soldrain,rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return
         CASE ('surface_runoff_amount')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%infxsrt,rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%infxsrt,rc=rc)
           if (ESMF_STDERRORCHECK(rc)) return
         CASE ('soil_temperature_layer_1')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,1),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,1),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_2')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,2),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,2),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_3')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,3),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,3),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_4')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%stc(:,:,4),rc=rc)
+          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,4),rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('vegetation_type')
-          call NUOPC_CopyFieldToFarray(field=field,farray=rt_domain(did)%vegtyp,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
+!        CASE ('vegetation_type')
+!          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%vegtyp,rc=rc)
+!          if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
           call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping import copy: "//trim(fieldNameList(fieldIndex)), &
             ESMF_LOGMSG_WARNING)
@@ -819,37 +819,37 @@ contains
 
       SELECT CASE (fieldNameList(fieldIndex))
         CASE ('liquid_fraction_of_soil_moisture_layer_1')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,1),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,1),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('liquid_fraction_of_soil_moisture_layer_2')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,2),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,2),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('liquid_fraction_of_soil_moisture_layer_3')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,3),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,3),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('liquid_fraction_of_soil_moisture_layer_4')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sh2ox(:,:,4),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,4),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('subsurface_runoff_amount')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%soldrain,field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%soldrain,dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('surface_runoff_amount')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%infxsrt,field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%infxsrt,dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_1')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,1),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,1),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_2')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,2),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,2),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_3')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,3),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,3),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('soil_temperature_layer_4')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%stc(:,:,4),field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,4),dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE ('water_surface_height_above_reference_datum')
-          call NUOPC_CopyFarrayToField(farray=rt_domain(did)%sfcheadrt,field=field,rc=rc)
+          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sfcheadrt,dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
           call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping export copy: "//trim(fieldNameList(fieldIndex)), &

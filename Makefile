@@ -140,12 +140,12 @@ nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
 # Dependencies
 # ############
 
-WRFHydro_NUOPC_Cap.o: wrfhydro_nuopc_gluecode.mod \
- beta_nuopc_fill.mod beta_nuopc_auxiliary.mod \
- beta_nuopc_log.mod beta_nuopc_base.mod \
+WRFHydro_NUOPC_Cap.o: WRFHydro_NUOPC_Gluecode.o \
+ beta_NUOPC_Fill.o beta_NUOPC_Auxiliary.o \
+ beta_NUOPC_Log.o beta_NUOPC_Base.o \
  WRFHydro_NUOPC_Macros.h
-WRFHydro_NUOPC_Gluecode.o: beta_nuopc_copy.mod \
- beta_nuopc_log.mod beta_nuopc_fileread.mod \
+WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.o \
+ beta_NUOPC_Log.o beta_NUOPC_FileRead.o \
  WRFHydro_NUOPC_Macros.h \
  $(MODEL_MODS)
 

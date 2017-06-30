@@ -10,88 +10,20 @@ module beta_NUOPC_Copy
 
   private
 
-  public :: NUOPC_CopyFieldToFarray
-  public :: NUOPC_CopyFarrayToField
-  public :: NUOPC_CopyArrayToFarray
-  public :: NUOPC_CopyFarrayToArray
+  public :: NUOPC_CopyFieldToArray
+  public :: NUOPC_CopyArrayToField
 
-  interface NUOPC_CopyFieldToFarray
-    module procedure NUOPC_CopyFieldToFarray_I41D
-    module procedure NUOPC_CopyFieldToFarray_I42D
-    module procedure NUOPC_CopyFieldToFarray_I43D
-    module procedure NUOPC_CopyFieldToFarray_I81D
-    module procedure NUOPC_CopyFieldToFarray_I82D
-    module procedure NUOPC_CopyFieldToFarray_I83D
-    module procedure NUOPC_CopyFieldToFarray_R41D
-    module procedure NUOPC_CopyFieldToFarray_R42D
-    module procedure NUOPC_CopyFieldToFarray_R43D
-    module procedure NUOPC_CopyFieldToFarray_R81D
-    module procedure NUOPC_CopyFieldToFarray_R82D
-    module procedure NUOPC_CopyFieldToFarray_R83D
+  interface NUOPC_CopyFieldToArray
+    module procedure NUOPC_CopyFieldToR42D
+    module procedure NUOPC_CopyFieldToR82D
   end interface
 
-  interface NUOPC_CopyFarrayToField
-    module procedure NUOPC_CopyFarrayToField_I41D
-    module procedure NUOPC_CopyFarrayToField_I42D
-    module procedure NUOPC_CopyFarrayToField_I43D
-    module procedure NUOPC_CopyFarrayToField_I81D
-    module procedure NUOPC_CopyFarrayToField_I82D
-    module procedure NUOPC_CopyFarrayToField_I83D
-    module procedure NUOPC_CopyFarrayToField_R41D
-    module procedure NUOPC_CopyFarrayToField_R42D
-    module procedure NUOPC_CopyFarrayToField_R43D
-    module procedure NUOPC_CopyFarrayToField_R81D
-    module procedure NUOPC_CopyFarrayToField_R82D
-    module procedure NUOPC_CopyFarrayToField_R83D
+  interface NUOPC_CopyArrayToField
+    module procedure NUOPC_CopyR42DtoField
+    module procedure NUOPC_CopyR82DtoField
   end interface
 
-  interface NUOPC_CopyArrayToFarray
-    module procedure NUOPC_CopyArrayToFarray_I41D
-    module procedure NUOPC_CopyArrayToFarray_I42D
-    module procedure NUOPC_CopyArrayToFarray_I43D
-    module procedure NUOPC_CopyArrayToFarray_I81D
-    module procedure NUOPC_CopyArrayToFarray_I82D
-    module procedure NUOPC_CopyArrayToFarray_I83D
-    module procedure NUOPC_CopyArrayToFarray_R41D
-    module procedure NUOPC_CopyArrayToFarray_R42D
-    module procedure NUOPC_CopyArrayToFarray_R43D
-    module procedure NUOPC_CopyArrayToFarray_R81D
-    module procedure NUOPC_CopyArrayToFarray_R82D
-    module procedure NUOPC_CopyArrayToFarray_R83D
-  end interface
-
-  interface NUOPC_CopyFarrayToArray
-    module procedure NUOPC_CopyFarrayToArray_I41D
-    module procedure NUOPC_CopyFarrayToArray_I42D
-    module procedure NUOPC_CopyFarrayToArray_I43D
-    module procedure NUOPC_CopyFarrayToArray_I81D
-    module procedure NUOPC_CopyFarrayToArray_I82D
-    module procedure NUOPC_CopyFarrayToArray_I83D
-    module procedure NUOPC_CopyFarrayToArray_R41D
-    module procedure NUOPC_CopyFarrayToArray_R42D
-    module procedure NUOPC_CopyFarrayToArray_R43D
-    module procedure NUOPC_CopyFarrayToArray_R81D
-    module procedure NUOPC_CopyFarrayToArray_R82D
-    module procedure NUOPC_CopyFarrayToArray_R83D
-  end interface
-
-  interface NUOPC_CopyArrayFarray
-    module procedure NUOPC_CopyArrayFarray_I41D
-    module procedure NUOPC_CopyArrayFarray_I42D
-    module procedure NUOPC_CopyArrayFarray_I43D
-    module procedure NUOPC_CopyArrayFarray_I81D
-    module procedure NUOPC_CopyArrayFarray_I82D
-    module procedure NUOPC_CopyArrayFarray_I83D
-    module procedure NUOPC_CopyArrayFarray_R41D
-    module procedure NUOPC_CopyArrayFarray_R42D
-    module procedure NUOPC_CopyArrayFarray_R43D
-    module procedure NUOPC_CopyArrayFarray_R81D
-    module procedure NUOPC_CopyArrayFarray_R82D
-    module procedure NUOPC_CopyArrayFarray_R83D
-  end interface
-
-  character(len=*),parameter :: NUOPC_COPY_FWD = 'from ESMF_Array to FORTRAN array'
-  character(len=*),parameter :: NUOPC_COPY_BWD = 'from FORTRAN array to ESMF_Array'
+  character(len=ESMF_MAXSTR) :: logMsg
 
   !-----------------------------------------------------------------------------
   contains
@@ -102,17 +34,22 @@ module beta_NUOPC_Copy
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_I41D"
+#define METHOD "NUOPC_CopyFieldToR42D"
 
-  subroutine NUOPC_CopyFieldToFarray_I41D(field,farray,localDe,rc)
+  subroutine NUOPC_CopyFieldToR42D(srcField,dstArray,localDe,rc)
    ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
+    type(ESMF_Field),intent(in)       :: srcField
+    real(ESMF_KIND_R4),intent(inout)  :: dstArray(:,:)
+    integer,intent(in),optional       :: localDe
+    integer,intent(out),optional      :: rc
 
     ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array    
+    real(ESMF_KIND_R4),pointer        :: srcArrayR4(:,:)
+    real(ESMF_KIND_R8),pointer        :: srcArrayR8(:,:)
+    type(ESMF_TypeKind_Flag)          :: typekind
+    integer                           :: rank
+    integer                           :: localDeCount
+    integer(ESMF_KIND_I8)             :: srcSize, dstSize
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -120,1520 +57,138 @@ module beta_NUOPC_Copy
 
     if (present(rc)) rc = ESMF_SUCCESS
 
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_I42D"
-
-  subroutine NUOPC_CopyFieldToFarray_I42D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_I43D"
-
-  subroutine NUOPC_CopyFieldToFarray_I43D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_I81D"
-
-  subroutine NUOPC_CopyFieldToFarray_I81D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_I82D"
-
-  subroutine NUOPC_CopyFieldToFarray_I82D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_I83D"
-
-  subroutine NUOPC_CopyFieldToFarray_I83D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_R41D"
-
-  subroutine NUOPC_CopyFieldToFarray_R41D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_R42D"
-
-  subroutine NUOPC_CopyFieldToFarray_R42D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_R43D"
-
-  subroutine NUOPC_CopyFieldToFarray_R43D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_R81D"
-
-  subroutine NUOPC_CopyFieldToFarray_R81D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_R82D"
-
-  subroutine NUOPC_CopyFieldToFarray_R82D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFieldToFarray_R83D"
-
-  subroutine NUOPC_CopyFieldToFarray_R83D(field,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyArrayToFarray(array,farray,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-  ! Copy FORTRAN Array to ESMF Field
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_I41D"
-
-  subroutine NUOPC_CopyFarrayToField_I41D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array    
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_I42D"
-
-  subroutine NUOPC_CopyFarrayToField_I42D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_I43D"
-
-  subroutine NUOPC_CopyFarrayToField_I43D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_I81D"
-
-  subroutine NUOPC_CopyFarrayToField_I81D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_I82D"
-
-  subroutine NUOPC_CopyFarrayToField_I82D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_I83D"
-
-  subroutine NUOPC_CopyFarrayToField_I83D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_R41D"
-
-  subroutine NUOPC_CopyFarrayToField_R41D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_R42D"
-
-  subroutine NUOPC_CopyFarrayToField_R42D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_R43D"
-
-  subroutine NUOPC_CopyFarrayToField_R43D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_R81D"
-
-  subroutine NUOPC_CopyFarrayToField_R81D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_R82D"
-
-  subroutine NUOPC_CopyFarrayToField_R82D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToField_R83D"
-
-  subroutine NUOPC_CopyFarrayToField_R83D(farray,field,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Field), intent(in)                :: field
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_Array)  :: array
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call ESMF_FieldGet(field,array=array,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call NUOPC_CopyFarrayToArray(farray,array,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-  ! Copy ESMF Array to FORTRAN Array.
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_I41D"
-
-  subroutine NUOPC_CopyArrayToFarray_I41D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_I42D"
-
-  subroutine NUOPC_CopyArrayToFarray_I42D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_I43D"
-
-  subroutine NUOPC_CopyArrayToFarray_I43D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_I81D"
-
-  subroutine NUOPC_CopyArrayToFarray_I81D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_I82D"
-
-  subroutine NUOPC_CopyArrayToFarray_I82D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_I83D"
-
-  subroutine NUOPC_CopyArrayToFarray_I83D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_R41D"
-
-  subroutine NUOPC_CopyArrayToFarray_R41D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_R42D"
-
-  subroutine NUOPC_CopyArrayToFarray_R42D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_R43D"
-
-  subroutine NUOPC_CopyArrayToFarray_R43D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_R81D"
-
-  subroutine NUOPC_CopyArrayToFarray_R81D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_R82D"
-
-  subroutine NUOPC_CopyArrayToFarray_R82D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayToFarray_R83D"
-
-  subroutine NUOPC_CopyArrayToFarray_R83D(array,farray,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFarray(array,farray,reverse=.FALSE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-  ! Copy FORTRAN Array to ESMF Array
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_I41D"
-
-  subroutine NUOPC_CopyFarrayToArray_I41D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_I42D"
-
-  subroutine NUOPC_CopyFarrayToArray_I42D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-    
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_I43D"
-
-  subroutine NUOPC_CopyFarrayToArray_I43D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_I81D"
-
-  subroutine NUOPC_CopyFarrayToArray_I81D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_I82D"
-
-  subroutine NUOPC_CopyFarrayToArray_I82D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_I83D"
-
-  subroutine NUOPC_CopyFarrayToArray_I83D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_R41D"
-
-  subroutine NUOPC_CopyFarrayToArray_R41D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_R42D"
-
-  subroutine NUOPC_CopyFarrayToArray_R42D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_R43D"
-
-  subroutine NUOPC_CopyFarrayToArray_R43D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_R81D"
-
-  subroutine NUOPC_CopyFarrayToArray_R81D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_R82D"
-
-  subroutine NUOPC_CopyFarrayToArray_R82D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyFarrayToArray_R83D"
-
-  subroutine NUOPC_CopyFarrayToArray_R83D(farray,array,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:,:)
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    call NUOPC_CopyArrayFArray(array,farray,reverse=.TRUE.,localDe=localDe,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-  ! Copy ESMF Array to/from FORTRAN Array - Direction controlled by reverse
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_I41D"
-
-  subroutine NUOPC_CopyArrayFarray_I41D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    integer(ESMF_KIND_I4),pointer  :: srcarray(:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
+    call ESMF_FieldGet(srcField,localDeCount=localDeCount, &
+      typekind=typekind, rank=rank, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+
+    if (.NOT.present(localDe)) then
+      if (localDeCount .gt. 1) then
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP, &
+          msg=METHOD//": missing localDe.", rcToReturn=rc)
+        return
+      endif
+    endif
+
+    if (rank .eq. 2) then
+      if (typekind .eq. ESMF_TYPEKIND_R4) then
+        call ESMF_FieldGet(srcField,localDe=localDe,farrayPtr=srcArrayR4,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArrayR4,kind=ESMF_KIND_I8)
+        dstSize=size(dstArray,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArray=srcArrayR4
+      elseif (typekind .eq. ESMF_TYPEKIND_R8) then
+        call ESMF_LogWrite(METHOD//": loss of precision R8 to R4.", &
+          ESMF_LOGMSG_WARNING)
+        call ESMF_FieldGet(srcField,localDe=localDe,farrayPtr=srcArrayR8,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArrayR8,kind=ESMF_KIND_I8)
+        dstSize=size(dstArray,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArray=srcArrayR8
+      else
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+          msg=METHOD//": typekind is not supported.", rcToReturn=rc)
+        return
+      endif
     else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
+      call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+        msg=METHOD//": rank is not supported.", rcToReturn=rc)
       return
     endif
 
-    if (rank /= 1) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
 
-    if (typekind /= ESMF_TYPEKIND_I4) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
+  end subroutine
 
-    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
+  !-----------------------------------------------------------------------------
+#undef METHOD
+#define METHOD "NUOPC_CopyFieldToR82D"
 
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
+  subroutine NUOPC_CopyFieldToR82D(srcField,dstArray,localDe,rc)
+   ! ARGUMENTS
+    type(ESMF_Field),intent(in)       :: srcField
+    real(ESMF_KIND_R8),intent(inout)  :: dstArray(:,:)
+    integer,intent(in),optional       :: localDe
+    integer,intent(out),optional      :: rc
+
+    ! LOCAL VARIABLES
+    real(ESMF_KIND_R4),pointer        :: srcArrayR4(:,:)
+    real(ESMF_KIND_R8),pointer        :: srcArrayR8(:,:)
+    type(ESMF_TypeKind_Flag)          :: typekind
+    integer                           :: rank
+    integer                           :: localDeCount
+    integer(ESMF_KIND_I8)             :: srcSize, dstSize
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
+    if (present(rc)) rc = ESMF_SUCCESS
+
+    call ESMF_FieldGet(srcField,localDeCount=localDeCount, &
+      typekind=typekind, rank=rank, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return
 
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
+    if (.NOT.present(localDe)) then
+      if (localDeCount .gt. 1) then
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP, &
+          msg=METHOD//": missing localDe.", rcToReturn=rc)
+        return
+      endif
+    endif
 
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
+    if (rank .eq. 2) then
+      if (typekind .eq. ESMF_TYPEKIND_R4) then
+        call ESMF_FieldGet(srcField,localDe=localDe,farrayPtr=srcArrayR4,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArrayR4,kind=ESMF_KIND_I8)
+        dstSize=size(dstArray,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArray=srcArrayR4
+      elseif (typekind .eq. ESMF_TYPEKIND_R8) then
+        call ESMF_FieldGet(srcField,localDe=localDe,farrayPtr=srcArrayR8,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArrayR8,kind=ESMF_KIND_I8)
+        dstSize=size(dstArray,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArray=srcArrayR8
+      else
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+          msg=METHOD//": typekind is not supported.", rcToReturn=rc)
+        return
+      endif
     else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
+      call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+        msg=METHOD//": rank is not supported.", rcToReturn=rc)
+      return
     endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1644,26 +199,22 @@ module beta_NUOPC_Copy
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_I42D"
+#define METHOD "NUOPC_CopyR42DtoField"
 
-  subroutine NUOPC_CopyArrayFarray_I42D(array,farray,reverse,localDe,rc)
+  subroutine NUOPC_CopyR42DtoField(srcArray,dstField,localDe,rc)
    ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
+    real(ESMF_KIND_R4),intent(in)     :: srcArray(:,:)
+    type(ESMF_Field),intent(inout)    :: dstField
+    integer,intent(in),optional       :: localDe
+    integer,intent(out),optional      :: rc
 
     ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    integer(ESMF_KIND_I4),pointer  :: srcarray(:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
+    real(ESMF_KIND_R4),pointer        :: dstArrayR4(:,:)
+    real(ESMF_KIND_R8),pointer        :: dstArrayR8(:,:)
+    type(ESMF_TypeKind_Flag)          :: typekind
+    integer                           :: rank
+    integer                           :: localDeCount
+    integer(ESMF_KIND_I8)             :: srcSize, dstSize
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -1671,67 +222,55 @@ module beta_NUOPC_Copy
 
     if (present(rc)) rc = ESMF_SUCCESS
 
-    if (present(localDe)) localDe_local = localDe
+    call ESMF_FieldGet(dstField,localDeCount=localDeCount, &
+      typekind=typekind, rank=rank, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
 
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
+    if (.NOT.present(localDe)) then
+      if (localDeCount .gt. 1) then
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP, &
+          msg=METHOD//": missing localDe.", rcToReturn=rc)
+        return
+      endif
+    endif
+
+    if (rank .eq. 2) then
+      if (typekind .eq. ESMF_TYPEKIND_R4) then
+        call ESMF_FieldGet(dstField,localDe=localDe,farrayPtr=dstArrayR4,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArray,kind=ESMF_KIND_I8)
+        dstSize=size(dstArrayR4,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArrayR4=srcArray
+      elseif (typekind .eq. ESMF_TYPEKIND_R8) then
+        call ESMF_FieldGet(dstField,localDe=localDe,farrayPtr=dstArrayR8,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArray,kind=ESMF_KIND_I8)
+        dstSize=size(dstArrayR8,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArrayR8=srcArray
+      else
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+          msg=METHOD//": typekind is not supported.", rcToReturn=rc)
+        return
+      endif
     else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
+      call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+        msg=METHOD//": rank is not supported.", rcToReturn=rc)
       return
     endif
-
-    if (rank /= 2) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_I4) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -1742,26 +281,22 @@ module beta_NUOPC_Copy
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_I43D"
+#define METHOD "NUOPC_CopyR82DtoField"
 
-  subroutine NUOPC_CopyArrayFarray_I43D(array,farray,reverse,localDe,rc)
+  subroutine NUOPC_CopyR82DtoField(srcArray,dstField,localDe,rc)
    ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I4),intent(inout)         :: farray(:,:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
+    real(ESMF_KIND_R8),intent(in)     :: srcArray(:,:)
+    type(ESMF_Field),intent(inout)    :: dstField
+    integer,intent(in),optional       :: localDe
+    integer,intent(out),optional      :: rc
 
     ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    integer(ESMF_KIND_I4),pointer  :: srcarray(:,:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
+    real(ESMF_KIND_R4),pointer        :: dstArrayR4(:,:)
+    real(ESMF_KIND_R8),pointer        :: dstArrayR8(:,:)
+    type(ESMF_TypeKind_Flag)          :: typekind
+    integer                           :: rank
+    integer                           :: localDeCount
+    integer(ESMF_KIND_I8)             :: srcSize, dstSize
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -1769,953 +304,57 @@ module beta_NUOPC_Copy
 
     if (present(rc)) rc = ESMF_SUCCESS
 
-    if (present(localDe)) localDe_local = localDe
+    call ESMF_FieldGet(dstField,localDeCount=localDeCount, &
+      typekind=typekind, rank=rank, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
 
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
+    if (.NOT.present(localDe)) then
+      if (localDeCount .gt. 1) then
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP, &
+          msg=METHOD//": missing localDe.", rcToReturn=rc)
+        return
+      endif
+    endif
+
+    if (rank .eq. 2) then
+      if (typekind .eq. ESMF_TYPEKIND_R4) then
+        call ESMF_LogWrite(METHOD//": loss of precision R8 to R4.", &
+          ESMF_LOGMSG_WARNING)
+        call ESMF_FieldGet(dstField,localDe=localDe,farrayPtr=dstArrayR4,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArray,kind=ESMF_KIND_I8)
+        dstSize=size(dstArrayR4,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArrayR4=srcArray
+      elseif (typekind .eq. ESMF_TYPEKIND_R8) then
+        call ESMF_FieldGet(dstField,localDe=localDe,farrayPtr=dstArrayR8,rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+        srcSize=size(srcArray,kind=ESMF_KIND_I8)
+        dstSize=size(dstArrayR8,kind=ESMF_KIND_I8)
+        if (srcSize /= dstSize) then
+          write (logMsg,"(A,I0,A,I0)") &
+            ": srcSize /= dstSize: ", srcSize," /= ",dstSize
+          call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SIZE, &
+            msg=METHOD//trim(logMsg), rcToReturn=rc)
+          return
+        endif
+        dstArrayR8=srcArray
+      else
+        call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+          msg=METHOD//": typekind is not supported.", rcToReturn=rc)
+        return
+      endif
     else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
+      call ESMF_LogSetError(rcToCheck=ESMF_RC_NOT_IMPL, &
+        msg=METHOD//": rank is not supported.", rcToReturn=rc)
       return
     endif
-
-    if (rank /= 3) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_I4) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &        
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_I81D"
-
-  subroutine NUOPC_CopyArrayFarray_I81D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    integer(ESMF_KIND_I8),pointer  :: srcarray(:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 1) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_I8) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_I82D"
-
-  subroutine NUOPC_CopyArrayFarray_I82D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    integer(ESMF_KIND_I8),pointer  :: srcarray(:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 2) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_I8) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_I83D"
-
-  subroutine NUOPC_CopyArrayFarray_I83D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    integer(ESMF_KIND_I8),intent(inout)         :: farray(:,:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    integer(ESMF_KIND_I8),pointer  :: srcarray(:,:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 3) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_I8) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_R41D"
-
-  subroutine NUOPC_CopyArrayFarray_R41D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    real(ESMF_KIND_R4),pointer     :: srcarray(:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 1) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_R4) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_R42D"
-
-  subroutine NUOPC_CopyArrayFarray_R42D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    real(ESMF_KIND_R4),pointer     :: srcarray(:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 2) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_R4) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_R43D"
-
-  subroutine NUOPC_CopyArrayFarray_R43D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R4),intent(inout)            :: farray(:,:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    real(ESMF_KIND_R4),pointer     :: srcarray(:,:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 3) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_R4) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_R81D"
-
-  subroutine NUOPC_CopyArrayFarray_R81D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    real(ESMF_KIND_R8),pointer     :: srcarray(:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 1) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_R8) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(1,0:localDeCount-1), compUBnd(1,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_R82D"
-
-  subroutine NUOPC_CopyArrayFarray_R82D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    real(ESMF_KIND_R8),pointer     :: srcarray(:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 2) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_R8) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(2,0:localDeCount-1), compUBnd(2,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "NUOPC_CopyArrayFarray_R83D"
-
-  subroutine NUOPC_CopyArrayFarray_R83D(array,farray,reverse,localDe,rc)
-   ! ARGUMENTS
-    type(ESMF_Array), intent(in)                :: array
-    real(ESMF_KIND_R8),intent(inout)            :: farray(:,:,:)
-    logical,intent(in)                          :: reverse
-    integer,intent(in),optional                 :: localDe
-    integer, intent(out),optional               :: rc
-
-    ! LOCAL VARIABLES
-    type(ESMF_TypeKind_Flag)       :: typekind
-    integer                        :: rank
-    integer                        :: localDeCount
-    real(ESMF_KIND_R8),pointer     :: srcarray(:,:,:)
-    character(len=32)              :: direction
-    integer,allocatable            :: compLBnd(:,:)
-    integer,allocatable            :: compUBnd(:,:)
-    integer                        :: localDe_local = 0
-    integer                        :: stat
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    if (present(localDe)) localDe_local = localDe
-
-    if (reverse) then
-      direction = NUOPC_COPY_BWD
-    else
-      direction = NUOPC_COPY_FWD
-    endif
-
-    call ESMF_ArrayGet(array,typekind=typekind,rank=rank,localDeCount=localDeCount,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (localDeCount > 1 .AND. (.NOT. present(localDe))) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_INCOMP,   &
-        msg="Cannot copy "//trim(direction)//" without localDe.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (rank /= 3) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_RANK,   &
-        msg="Cannot copy "//trim(direction)//" unless ranks match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    if (typekind /= ESMF_TYPEKIND_R8) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_ARG_SAMETYPE,   &
-        msg="Cannot copy "//trim(direction)//" unless typekinds match.", &
-        line=__LINE__, file=FILENAME, rcToReturn=rc)
-      return
-    endif
-
-    allocate(compLBnd(3,0:localDeCount-1), compUBnd(3,0:localDeCount-1), &
-      stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Allocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
-
-    call ESMF_ArrayGet(array, computationalLBound=compLBnd, &
-      computationalUBound=compUBnd, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    call ESMF_ArrayGet(array,farrayPtr=srcarray,localDe=localDe, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-
-    if (reverse) then
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    else
-      farray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local)) = &
-      srcarray(compLBnd(1,localDe_local):compUBnd(1,localDe_local), &
-      compLBnd(2,localDe_local):compUBnd(2,localDe_local), &
-      compLBnd(3,localDe_local):compUBnd(3,localDe_local))
-    endif
-
-    deallocate(compLBnd, compUBnd, stat=stat)
-    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Deallocation of computational boundary memory failed.", &
-      line=__LINE__, file=FILENAME)) return  ! bail out
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
