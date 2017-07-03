@@ -299,7 +299,7 @@ contains
     nlst_rt(did)%nsoil=4
     allocate(nlst_rt(did)%zsoil8(4),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of model soil depths memory failed.', &
+      msg=METHOD//': Allocation of model soil depths memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     nlst_rt(did)%zsoil8(1:4)=(/-0.1,-0.4,-1.0,-2.0/)
     nlst_rt(did)%geo_static_flnm = "geo_em.d01.nc"
@@ -318,7 +318,7 @@ contains
 
     if(nlst_rt(did)%nsoil .gt. 4) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: Maximum soil levels supported is 4.", &
+        msg=METHOD//": Maximum soil levels supported is 4.", &
         file=FILENAME,rcToReturn=rc)
       return  ! bail out
     endif
@@ -335,7 +335,7 @@ contains
 
 !    allocate(connectionList(1),stat=stat)
 !    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-!      msg='WRFHYDRO: Allocation of connection list memory failed.', &
+!      msg=METHOD//': Allocation of connection list memory failed.', &
 !      file=FILENAME, rcToReturn=rc)) return ! bail out
 !    call ESMF_DistGridConnectionSet(connectionList(1), tileIndexA=1, &
 !      tileIndexB=1, positionVector=(/nx_global, 0/), rc=rc)
@@ -355,7 +355,7 @@ contains
 
 !   deallocate(connectionList,stat=stat)
 !   if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-!     msg='WRFHYDRO: Deallocation of connection list memory failed.', &
+!     msg=METHOD//': Deallocation of connection list memory failed.', &
 !     file=FILENAME,rcToReturn=rc)) return ! bail out
 
     ! Get the Local Decomp Incides
@@ -385,6 +385,8 @@ contains
     endif
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": Exit HYDRO_ini", ESMF_LOGMSG_INFO)
+    call WRFHYDRO_domainLog(did,MODNAME,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
 #endif
 
     ! Override the clock configuration in hyro.namelist
@@ -409,7 +411,7 @@ contains
 
     if(nlst_rt(did)%dt .le. 0) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: Timestep less than 1 is not supported!", &
+        msg=METHOD//": Timestep less than 1 is not supported!", &
         file=FILENAME,rcToReturn=rc)
       return  ! bail out
     endif
@@ -423,7 +425,7 @@ contains
     else
       if(mod(nlst_rt(did)%dt,nlst_rt(did)%dtrt) /= 0) then
         call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-          msg="WRFHYDRO: Driver timestep is not a multiple of routine timestep!", &
+          msg=METHOD//": Driver timestep is not a multiple of routine timestep!", &
           file=FILENAME,rcToReturn=rc)
         return  ! bail out
       endif
@@ -484,20 +486,20 @@ contains
 
     if(nlst_rt(did)%dt .le. 0) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: Timestep less than 1 is not supported!", &
+        msg=METHOD//": Timestep less than 1 is not supported!", &
         file=FILENAME,rcToReturn=rc)
       return  ! bail out
     endif
 
     if((dt_factor*nlst_rt(did)%dtrt) .ne. nlst_rt(did)%dt) then   ! NUOPC driver time step changed.
-      call ESMF_LogWrite("WRFHYDRO: Driver timestep changed.",ESMF_LOGMSG_INFO)
+      call ESMF_LogWrite(METHOD//": Driver timestep changed.",ESMF_LOGMSG_INFO)
       if(nlst_rt(did)%dtrt .ge. nlst_rt(did)%dt) then
         nlst_rt(did)%dtrt = nlst_rt(did)%dt
         dt_factor = 1
       else
         if(mod(nlst_rt(did)%dt,nlst_rt(did)%dtrt) /= 0) then
           call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-            msg="WRFHYDRO: New driver timestep is not a multiple of routing timestep!", &
+            msg=METHOD//": New driver timestep is not a multiple of routing timestep!", &
             rcToReturn=rc)
           return  ! bail out
         endif
@@ -508,16 +510,16 @@ contains
     if(nlst_rt(did)%SUBRTSWCRT .eq.0  .and. &
       nlst_rt(did)%OVRTSWCRT .eq. 0 .and. &
       nlst_rt(did)%GWBASESWCRT .eq. 0) then
-       call ESMF_LogWrite("WRFHYDRO:  SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
+       call ESMF_LogWrite(METHOD//": SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
             ESMF_LOGMSG_WARNING)
       !call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-      !  msg="WRFHYDRO: SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
+      !  msg=METHOD//": SUBRTSWCRT,OVRTSWCRT,GWBASESWCRT are zero!", &
       !  file=FILENAME,rcToReturn=rc)
       !return  ! bail out
     endif
 
     if((.not. RT_DOMAIN(did)%initialized) .and. (nlst_rt(did)%rst_typ .eq. 1) ) then
-      call ESMF_LogWrite("WRFHYDRO: Restart initial data from offline file.", &
+      call ESMF_LogWrite(METHOD//": Restart initial data from offline file.", &
         ESMF_LOGMSG_INFO)
     else
 
@@ -541,7 +543,7 @@ contains
           if (ESMF_STDERRORCHECK(rc)) return
         case default
           call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
-            msg="WRFHYDRO: Running mode is unknown.", &
+            msg=METHOD//": Running mode is unknown.", &
             file=FILENAME, rcToReturn=rc)
           return  ! bail out
       end select
@@ -591,74 +593,10 @@ contains
 !    DCR - Turned off to let the model deallocate memory
 !    deallocate(nlst_rt(did)%zsoil8)
 !    if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-!      msg='WRFHYDRO: Deallocation of model soil depth memory failed.', &
+!      msg=METHOD//': Deallocation of model soil depth memory failed.', &
 !      file=FILENAME,rcToReturn=rc)) return ! bail out
 
     RT_DOMAIN(did)%initialized = .false.
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-  ! Data copy Model to/from NUOPC
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "WRFHYDRO_RoutingDomainPrint"
-
-  subroutine WRFHYDRO_RoutingDomainPrint(did,label,values,rc)
-    ! ARGUMENTS
-    integer,intent(inout)         :: did
-    character(len=*),intent(in)   :: label
-    logical                       :: values
-    integer,intent(out)           :: rc
-
-    ! LOCAL VARIABLES
-    integer                    :: lIndex
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    rc = ESMF_SUCCESS
-
-    !! Land forcing fields
-    do lIndex = 1, nlst_rt(did)%nsoil
-      call NUOPC_LogFarrayLclVal(rt_domain(did)%STC(:,:,lIndex), &
-        fieldName="temperature of soil",label=label,rc=rc)
-      call NUOPC_LogFarrayLclVal(rt_domain(did)%smc(:,:,lIndex), &
-        fieldName="moisture content of soil",label=label,rc=rc)
-      call NUOPC_LogFarrayLclVal(rt_domain(did)%sh2ox(:,:,lIndex), &
-        fieldName="liquid water content of soil",label=label,rc=rc)
-    enddo
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%infxsrt, &
-      fieldName="surface runoff flux",label=label,rc=rc)
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%soldrain, &
-      fieldName="subsurface runoff flux",label=label,rc=rc)
-    
-
-    do lIndex = 1, nlst_rt(did)%nsoil
-      write(logMsg,"(A,I0,A,F0.3,A)") "WRFHYDRO: soil layer depth (layer,depth)=(", &
-        lIndex,",",rt_domain(did)%SLDPTH(lIndex),")"
-      call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    enddo
-    write(logMsg,"(A,2(I0,A))") "WRFHYDRO: RT domain dimensions (IX,JX)=(", &
-      rt_domain(did)%ix,",",rt_domain(did)%jx,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%SMCMAX1, &
-      fieldName="SMCMAX1",label=label,rc=rc)
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%SMCWLT1, &
-      fieldName="SMCWLT1",label=label,rc=rc)
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%SMCREF1, &
-      fieldName="SMCREF1",label=label,rc=rc)
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%VEGTYP, &
-      fieldName="vegetation type",label=label,rc=rc)
-    call NUOPC_LogFarrayLclVal(rt_domain(did)%node_area, &
-      fieldName="node area",label=label,rc=rc)
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
@@ -761,7 +699,7 @@ contains
 !          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%vegtyp,rc=rc)
 !          if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
-          call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping import copy: "//trim(fieldNameList(fieldIndex)), &
+          call ESMF_LogWrite(METHOD//": Field hookup missing. Skipping import copy: "//trim(fieldNameList(fieldIndex)), &
             ESMF_LOGMSG_WARNING)
           cycle
       END SELECT
@@ -852,7 +790,7 @@ contains
           call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sfcheadrt,dstField=field,rc=rc)
           if(ESMF_STDERRORCHECK(rc)) return ! bail out
         CASE DEFAULT
-          call ESMF_LogWrite("WRFHYDRO: Field hookup missing. Skipping export copy: "//trim(fieldNameList(fieldIndex)), &
+          call ESMF_LogWrite(METHOD//": Field hookup missing. Skipping export copy: "//trim(fieldNameList(fieldIndex)), &
             ESMF_LOGMSG_WARNING)
           cycle
       END SELECT
@@ -912,7 +850,7 @@ contains
     ! Get Local Latitude (lat)
     allocate(latitude(nx_local,ny_local),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of latitude memory failed.', &
+      msg=METHOD//': Allocation of latitude memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     call NUOPC_NetcdfReadIXJX("XLAT_M",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),latitude,rc=rc)
@@ -921,7 +859,7 @@ contains
     ! Get Local Longitude (lon)
     allocate(longitude(nx_local,ny_local),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of longitude memory failed.', &
+      msg=METHOD//': Allocation of longitude memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     call NUOPC_NetcdfReadIXJX("XLONG_M",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),longitude,rc=rc)
@@ -957,13 +895,13 @@ contains
 
     deallocate(latitude,longitude,stat=stat)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Deallocation of longitude and latitude memory failed.', &
+      msg=METHOD//': Deallocation of longitude and latitude memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
     ! Get Local Mask
     allocate(mask(nx_local,ny_local),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of mask memory failed.', &
+      msg=METHOD//': Allocation of mask memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     call NUOPC_NetcdfReadIXJX("LANDMASK",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),mask,rc=rc)
@@ -989,7 +927,7 @@ contains
 
     deallocate(mask,stat=stat)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Deallocation of mask memory failed.', &
+      msg=METHOD//': Deallocation of mask memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
     ! CORNERS
@@ -1013,7 +951,7 @@ contains
       ! Get Local Latitude (lat)
       allocate(latitude(nx_local+1,ny_local+1),stat=stat)
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-        msg='WRFHYDRO: Allocation of corner latitude memory failed.', &
+        msg=METHOD//': Allocation of corner latitude memory failed.', &
         file=FILENAME, rcToReturn=rc)) return ! bail out
       call NUOPC_NetcdfReadIXJX(trim(xlat_corner_name),nlst_rt(did)%geo_static_flnm, &
         (/x_start,y_start/),latitude,rc=rc)
@@ -1022,7 +960,7 @@ contains
       ! Get Local Longitude (lon)
       allocate(longitude(nx_local+1,ny_local+1),stat=stat)
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-       msg='WRFHYDRO: Allocation of corner longitude memory failed.', &
+       msg=METHOD//': Allocation of corner longitude memory failed.', &
        file=FILENAME, rcToReturn=rc)) return ! bail out
       call NUOPC_NetcdfReadIXJX(trim(xlon_corner_name),nlst_rt(did)%geo_static_flnm, &
         (/x_start,y_start/),longitude,rc=rc)
@@ -1058,7 +996,7 @@ contains
 
       deallocate(latitude,longitude,stat=stat)
       if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-        msg='WRFHYDRO: Deallocation of corner longitude and latitude memory failed.', &
+        msg=METHOD//': Deallocation of corner longitude and latitude memory failed.', &
         file=FILENAME,rcToReturn=rc)) return ! bail out
 
       call add_area(WRFHYDRO_GridCreate, rc=rc)
@@ -1169,7 +1107,7 @@ contains
     !! Get the grid distribution for this pet
     allocate(dimExtent(2, 0:(petCount - 1)),stat=stat) ! (dimCount, deCount)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of indexCountPDe memory failed.', &
+      msg=METHOD//': Allocation of indexCountPDe memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     call ESMF_DistGridGet(WRFHYDRO_DistGrid, delayout=delayout, &
       indexCountPDe=dimExtent, rc=rc)
@@ -1177,7 +1115,7 @@ contains
 
     allocate(iIndexList(dimExtent(1, localPet)),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of iIndexList memory failed.', &
+      msg=METHOD//': Allocation of iIndexList memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     call ESMF_DistGridGet(WRFHYDRO_DistGrid, localDe=0, dim=1, &
       indexList=iIndexList, rc=rc)
@@ -1185,7 +1123,7 @@ contains
 
     allocate(jIndexList(dimExtent(2, localPet)),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Allocation of jIndexList memory failed.', &
+      msg=METHOD//': Allocation of jIndexList memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
     call ESMF_DistGridGet(WRFHYDRO_DistGrid, localDe=0, dim=2, &
       indexList=jIndexList, rc=rc)
@@ -1208,12 +1146,12 @@ contains
 
     deallocate(iIndexList,jIndexList,stat=stat)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Deallocation of IndexList memory failed.', &
+      msg=METHOD//': Deallocation of IndexList memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
     deallocate(dimExtent,stat=stat)
     if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-      msg='WRFHYDRO: Deallocation of indexCountPDeo memory failed.', &
+      msg=METHOD//': Deallocation of indexCountPDeo memory failed.', &
       file=FILENAME,rcToReturn=rc)) return ! bail out
 
 #ifdef DEBUG
@@ -1413,7 +1351,7 @@ contains
 
     if (len(timestr) < 19) then
       call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-        msg="WRFHYDRO: Time string is too short!", &
+        msg=METHOD//": Time string is too short!", &
         file=FILENAME,rcToReturn=rc)
       return  ! bail out
     endif
@@ -1530,157 +1468,131 @@ contains
     if (present(label)) then
       l_label = label
     else
-      l_label = 'WRFHYDRO: nlstLog'
+      l_label = METHOD
     endif
 
-    write (logMsg,"(A,I0)") trim(l_label)//" DomainID=",did
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Soil Layers=",nlst_rt(did)%nsoil
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Domain ID      = ",did
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" SOLVEG_INITSWC=",nlst_rt(did)%SOLVEG_INITSWC
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    do layerIndex=1,nlst_rt(did)%nsoil
-      write (logMsg,"(A,I0,A,F0.3,A)") trim(l_label)//" Soil layer depth (layer,depth): (", &
-        layerIndex,",",nlst_rt(did)%ZSOIL8(layerIndex),")"
-      call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    enddo
- 
-    write (logMsg,"(A,3(F0.3,A))") trim(l_label)//" Timestep (out_dt,rst_dt,dt): (", &
-      nlst_rt(did)%out_dt,",",nlst_rt(did)%rst_dt,",", &
-      nlst_rt(did)%dt,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,5(I0,A))") trim(l_label)//" Start (YR-MN-DY_HR:MN)=", &
+    write (logMsg,"(A,5(I0,A))") ": Start Date     = ", &
       nlst_rt(did)%START_YEAR,"-",nlst_rt(did)%START_MONTH,"-", &
-      nlst_rt(did)%START_DAY,"_", &
-      nlst_rt(did)%START_HOUR,":",nlst_rt(did)%START_MIN
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+      nlst_rt(did)%START_DAY,"_",nlst_rt(did)%START_HOUR,":", &
+      nlst_rt(did)%START_MIN
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,F0.3)") ": Timestep       = ",nlst_rt(did)%dt
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,F0.3)") ": Output Step    = ",nlst_rt(did)%out_dt
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,F0.3)") ": Restart Step   = ",nlst_rt(did)%rst_dt
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,F0.3)") ": Routing Step   = ",nlst_rt(did)%DTRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,A)") trim(l_label)//" Restart file=",trim(nlst_rt(did)%restart_file)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Grid ID        = ",nlst_rt(did)%igrid
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") ": Hydro Grid     = ",nlst_rt(did)%hgrid
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") ": Geo Grid File  = ",nlst_rt(did)%geo_static_flnm
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") ": Fine Grid File = ",nlst_rt(did)%geo_finegrid_flnm
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") ": GW Basin File  = ",nlst_rt(did)%gwbasmskfil
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Split output count=",nlst_rt(did)%split_output_count
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Restart Type   = ",nlst_rt(did)%rst_typ
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,A)") ": Restart file   = ",nlst_rt(did)%restart_file
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Coupling       = ",nlst_rt(did)%sys_cpl
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid ID=",nlst_rt(did)%igrid
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Channel RT     = ",nlst_rt(did)%CHANRTSWCRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Subsurface RT  = ",nlst_rt(did)%SUBRTSWCRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Overland RT    = ",nlst_rt(did)%OVRTSWCRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": GW Baseflow RT = ",nlst_rt(did)%GWBASESWCRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Routing Option = ",nlst_rt(did)%RT_OPTION
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Channel Option = ",nlst_rt(did)%channel_option
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Aggr Factor    = ",nlst_rt(did)%AGGFACTRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": GW Restart     = ",nlst_rt(did)%GW_RESTART
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": SWC Restart    = ",nlst_rt(did)%RSTRT_SWC
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
 
-    write (logMsg,"(A,2(I0,A))") trim(l_label)//" Parallel IO (in,out): (", &
-      nlst_rt(did)%rst_bi_in,",",nlst_rt(did)%rst_bi_out,")"
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,A)") trim(l_label)//" Geo static filename=",trim(nlst_rt(did)%geo_static_flnm)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" DEEPGWSPIN=",nlst_rt(did)%DEEPGWSPIN
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" Order to write=",nlst_rt(did)%order_to_write
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" Restart type=",nlst_rt(did)%rst_typ
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,A)") trim(l_label)//" Hydro Grid=",nlst_rt(did)%hgrid
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,A)") trim(l_label)//" Old date=",nlst_rt(did)%olddate
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" Start date=",nlst_rt(did)%startdate
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" Since date=",nlst_rt(did)%sincedate
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" Routing option=",nlst_rt(did)%RT_OPTION
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" CHANRTSWCRT=",nlst_rt(did)%CHANRTSWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Channel option=",nlst_rt(did)%channel_option
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" SUBRTSWCRT=",nlst_rt(did)%SUBRTSWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" OVRTSWCRT=",nlst_rt(did)%OVRTSWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" AGGFACTRT=",nlst_rt(did)%AGGFACTRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GWBASESWCRT=",nlst_rt(did)%GWBASESWCRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GW_RESTART=",nlst_rt(did)%GW_RESTART
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" RSTRT_SWC=",nlst_rt(did)%RSTRT_SWC
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" TERADJ_SOLAR=",nlst_rt(did)%TERADJ_SOLAR
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" System coupling=",nlst_rt(did)%sys_cpl
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" gwChanCondSw=",nlst_rt(did)%gwChanCondSw
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GwPreCycles=",nlst_rt(did)%GwPreCycles
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GwSpinCycles=",nlst_rt(did)%GwSpinCycles
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" GwPreDiagInterval=",nlst_rt(did)%GwPreDiagInterval
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" gwsoilcpl=",nlst_rt(did)%gwsoilcpl
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,L1)") trim(l_label)//" GwPreDiag=",nlst_rt(did)%GwPreDiag
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,L1)") trim(l_label)//" GwSpinUp=",nlst_rt(did)%GwSpinUp
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" DTRT=",nlst_rt(did)%DTRT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" dxrt0=",nlst_rt(did)%dxrt0
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" DTCT=",nlst_rt(did)%DTCT
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" gwChanCondConstIn=",nlst_rt(did)%gwChanCondConstIn
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" gwChanCondConstOut=",nlst_rt(did)%gwChanCondConstOut
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") trim(l_label)//" gwIhShift=",nlst_rt(did)%gwIhShift
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,A)") trim(l_label)//" route_topo_f=",trim(nlst_rt(did)%route_topo_f)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_chan_f=",trim(nlst_rt(did)%route_chan_f)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_link_f=",trim(nlst_rt(did)%route_link_f)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_lake_f=",trim(nlst_rt(did)%route_lake_f)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_direction_f=",trim(nlst_rt(did)%route_direction_f)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" route_order_f=",trim(nlst_rt(did)%route_order_f)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" gwbasmskfil=",trim(nlst_rt(did)%gwbasmskfil)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" gwstrmfil=",trim(nlst_rt(did)%gwstrmfil)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,A)") trim(l_label)//" geo_finegrid_flnm=",trim(nlst_rt(did)%geo_finegrid_flnm)
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-
-    write (logMsg,"(A,I0)") trim(l_label)//" Point timeseries output at user specified points=",nlst_rt(did)%frxst_pts_out
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Point timeseries output at all channel points=",nlst_rt(did)%CHRTOUT_DOMAIN
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of channel streamflow values=",nlst_rt(did)%CHRTOUT_GRID
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of variables passed between LSM and routing components=",nlst_rt(did)%LSMOUT_DOMAN
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of terrain routing variables on routing grid=",nlst_rt(did)%RTOUT_DOMAIN
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of GW=",nlst_rt(did)%output_gw
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,I0)") trim(l_label)//" Grid of lakes=",nlst_rt(did)%outlake
-    call ESMF_LogWrite(trim(logMsg),ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Soil Layers    = ",nlst_rt(did)%nsoil
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    do layerIndex=1,nlst_rt(did)%nsoil
+      write (logMsg,"(A,I0,A,F0.3)") ": Soil layer depth (", &
+        layerIndex,") = ",nlst_rt(did)%ZSOIL8(layerIndex)
+      call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    enddo
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
   end subroutine
+
+  !-----------------------------------------------------------------------------
+
+#undef METHOD
+#define METHOD "WRFHYDRO_domainLog"
+
+  subroutine WRFHYDRO_domainLog(did,label,rc)
+    ! ARGUMENTS
+    integer,intent(in)                   :: did
+    character(len=*),intent(in),optional :: label
+    integer,intent(out)                  :: rc
+
+    ! LOCAL VARIABLES
+    character(len=64)           :: l_label
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
+    rc = ESMF_SUCCESS
+
+    if (present(label)) then
+      l_label = label
+    else
+      l_label = METHOD
+    endif
+
+    write (logMsg,"(A,I0)") ": Domain ID      = ",did
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+
+    write (logMsg,"(A,L1)") ": Domain Init    = ",rt_domain(did)%initialized
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Domain IX      = ",rt_domain(did)%IX
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Domain JX      = ",rt_domain(did)%JX
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Domain IXRT    = ",rt_domain(did)%IXRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Domain JXRT    = ",rt_domain(did)%JXRT
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Domain Forc    = ",rt_domain(did)%FORC_TYP
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Max Links      = ",rt_domain(did)%NLINKS
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Num Lakes      = ",rt_domain(did)%NLAKES
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,I0)") ": Num Basins     = ",rt_domain(did)%numbasns
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+
+#ifdef DEBUG
+    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
+#endif
+
+  end subroutine
+
+  !-----------------------------------------------------------------------------
 
 end module
