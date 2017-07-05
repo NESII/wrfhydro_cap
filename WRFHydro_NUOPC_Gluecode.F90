@@ -75,6 +75,7 @@ module wrfhydro_nuopc_gluecode
   public :: WRFHYDRO_Field
   public :: WRFHYDRO_FieldList
   public :: WRFHYDRO_FieldDictionaryAdd
+  public :: WRFHYDRO_FieldCreate
 
   INTEGER, PARAMETER :: WRFHYDRO_Unknown = -1
   INTEGER, PARAMETER :: WRFHYDRO_Offline =  0
@@ -207,16 +208,16 @@ module wrfhydro_nuopc_gluecode
       adImport=.FALSE.,adExport=.TRUE.), & 
     WRFHYDRO_Field( & !(38)
       stdname='soil_temperature_layer_1', units='K', &
-      adImport=.TRUE.,adExport=.TRUE.), &
+      adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(39)
       stdname='soil_temperature_layer_2', units='K', &
-      adImport=.TRUE.,adExport=.TRUE.), &
+      adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(40)
       stdname='soil_temperature_layer_3', units='K', &
-      adImport=.TRUE.,adExport=.TRUE.), &
+      adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(41)
       stdname='soil_temperature_layer_4', units='K', &
-      adImport=.TRUE.,adExport=.TRUE.), &
+      adImport=.TRUE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(42)
       stdname='vegetation_type', units='1', &
       adImport=.FALSE.,adExport=.FALSE.), &
@@ -531,16 +532,16 @@ contains
             ix=rt_domain(did)%ix,jx=rt_domain(did)%jx, &
             infxsrt=rt_domain(did)%infxsrt,soldrain=rt_domain(did)%soldrain)
         case (WRFHYDRO_Coupled)
-          call copy_import_fields(did, importState, rc)
-          if (ESMF_STDERRORCHECK(rc)) return
+
+
         case (WRFHYDRO_Hybrid)
           call read_ldasout(olddate=nlst_rt(did)%olddate(1:19), &
             hgrid=nlst_rt(did)%hgrid, &
             indir=trim(indir), dt=nlst_rt(did)%dt, &
             ix=rt_domain(did)%ix,jx=rt_domain(did)%jx, &
             infxsrt=rt_domain(did)%infxsrt,soldrain=rt_domain(did)%soldrain)
-          call copy_import_fields(did, importState, rc)
-          if (ESMF_STDERRORCHECK(rc)) return
+
+
         case default
           call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
             msg=METHOD//": Running mode is unknown.", &
@@ -551,10 +552,6 @@ contains
   
     ! Call the WRF-HYDRO run routine
     call HYDRO_exe(did=did)
-
-    !! Copy the data to NUOPC fields
-    call copy_export_fields(did, exportState, rc)
-    if (ESMF_STDERRORCHECK(rc)) return
 
     ! provide groundwater soil flux to WRF for fully coupled simulations (FERSCH 09/2014)
     !if(nlst_rt(did)%GWBASESWCRT .eq. 3 ) then
@@ -605,24 +602,21 @@ contains
   end subroutine
 
   !-----------------------------------------------------------------------------
-  ! Data copy Model to/from NUOPC
+  ! Create field using internal memory
   !-----------------------------------------------------------------------------
 
 #undef METHOD
-#define METHOD "copy_import_fields"
+#define METHOD "WRFHYDRO_FieldCreate"
 
-  subroutine copy_import_fields(did,importState, rc)
+  function WRFHYDRO_FieldCreate(stdName,grid,did,rc)
+    ! RETURN VALUE
+    type(ESMF_Field) :: WRFHYDRO_FieldCreate
     ! ARGUMENTS
+    character(*), intent(in)                :: stdName
+    type(ESMF_Grid), intent(in)             :: grid
     integer, intent(in)                     :: did
-    type(ESMF_State), intent(inout)         :: importState
     integer,          intent(out)           :: rc
-
     ! LOCAL VARIABLES
-    integer                    :: fieldCount
-    integer                    :: fieldIndex
-    character(len=64), pointer :: fieldNameList(:)
-    type(ESMF_StateItem_Flag)  :: itemType
-    type(ESMF_Field)           :: field
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -630,180 +624,104 @@ contains
 
     rc = ESMF_SUCCESS
 
-    call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-    allocate(fieldNameList(fieldCount))
-    call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
-    do fieldIndex = 1, fieldCount
-      call ESMF_StateGet(importState, itemName=fieldNameList(fieldIndex), &
-        itemType=itemType, rc=rc)
-      if (ESMF_STDERRORCHECK(rc)) return
-
-      if (itemType /= ESMF_STATEITEM_FIELD) cycle
-      if(.not.NUOPC_IsConnected(importState, &
-        fieldName=fieldNameList(fieldIndex))) cycle
-
-      call ESMF_StateGet(importState, itemName=fieldNameList(fieldIndex), &
-        field=field, rc=rc)
-      if(ESMF_STDERRORCHECK(rc)) return ! bail out 
-
-      SELECT CASE (fieldNameList(fieldIndex))
-        CASE ('liquid_fraction_of_soil_moisture_layer_1')
-          call NUOPC_CopyFieldToArray(srcfield=field,dstArray=rt_domain(did)%sh2ox(:,:,1),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_fraction_of_soil_moisture_layer_2')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%sh2ox(:,:,2),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_fraction_of_soil_moisture_layer_3')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%sh2ox(:,:,3),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_fraction_of_soil_moisture_layer_4')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%sh2ox(:,:,4),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_moisture_fraction_layer_1')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,1),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_moisture_fraction_layer_2')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,2),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_moisture_fraction_layer_3')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,3),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_moisture_fraction_layer_4')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smc(:,:,4),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_porosity')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%smcmax1,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('subsurface_runoff_amount')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%soldrain,rc=rc)
-          if (ESMF_STDERRORCHECK(rc)) return
-        CASE ('surface_runoff_amount')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%infxsrt,rc=rc)
-          if (ESMF_STDERRORCHECK(rc)) return
-        CASE ('soil_temperature_layer_1')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,1),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_2')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,2),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_3')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,3),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_4')
-          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%stc(:,:,4),rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-!        CASE ('vegetation_type')
-!          call NUOPC_CopyFieldToArray(srcField=field,dstArray=rt_domain(did)%vegtyp,rc=rc)
-!          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE DEFAULT
-          call ESMF_LogWrite(METHOD//": Field hookup missing. Skipping import copy: "//trim(fieldNameList(fieldIndex)), &
-            ESMF_LOGMSG_WARNING)
-          cycle
-      END SELECT
-    enddo
-    deallocate(fieldNameList)
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-#undef METHOD
-#define METHOD "copy_export_fields"
-
-  subroutine copy_export_fields(did, exportState, rc)
-    ! ARGUMENTS
-    integer, intent(in)                     :: did
-    type(ESMF_State), intent(inout)         :: exportState
-    integer,          intent(out)           :: rc
-
-    ! LOCAL VARIABLES
-    integer                    :: fieldCount
-    integer                    :: fieldIndex
-    character(len=64), pointer :: fieldNameList(:)
-    type(ESMF_StateItem_Flag)  :: itemType
-    type(ESMF_Field)           :: field
-
-#ifdef DEBUG
-    call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
-#endif
-
-    rc = ESMF_SUCCESS
-
-    call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-    allocate(fieldNameList(fieldCount))
-    call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
-    do fieldIndex = 1, fieldCount
-      call ESMF_StateGet(exportState, itemName=fieldNameList(fieldIndex), &
-        itemType=itemType, rc=rc)
-      if (ESMF_STDERRORCHECK(rc)) return
-
-      if (itemType /= ESMF_STATEITEM_FIELD) cycle
-      if(.not.NUOPC_IsConnected(exportState, &
-        fieldName=fieldNameList(fieldIndex))) cycle
-
-      call ESMF_StateGet(exportState, itemName=fieldNameList(fieldIndex), &
-        field=field, rc=rc)
-      if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
-      SELECT CASE (fieldNameList(fieldIndex))
-        CASE ('liquid_fraction_of_soil_moisture_layer_1')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,1),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_fraction_of_soil_moisture_layer_2')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,2),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_fraction_of_soil_moisture_layer_3')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,3),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('liquid_fraction_of_soil_moisture_layer_4')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sh2ox(:,:,4),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('subsurface_runoff_amount')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%soldrain,dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('surface_runoff_amount')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%infxsrt,dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_1')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,1),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_2')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,2),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_3')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,3),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('soil_temperature_layer_4')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%stc(:,:,4),dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE ('water_surface_height_above_reference_datum')
-          call NUOPC_CopyArrayToField(srcArray=rt_domain(did)%sfcheadrt,dstField=field,rc=rc)
-          if(ESMF_STDERRORCHECK(rc)) return ! bail out
-        CASE DEFAULT
-          call ESMF_LogWrite(METHOD//": Field hookup missing. Skipping export copy: "//trim(fieldNameList(fieldIndex)), &
-            ESMF_LOGMSG_WARNING)
-          cycle
-      END SELECT
-    enddo 
-    deallocate(fieldNameList)
+    SELECT CASE (trim(stdName))
+      CASE ('liquid_fraction_of_soil_moisture_layer_1')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%sh2ox(:,:,1), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('liquid_fraction_of_soil_moisture_layer_2')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%sh2ox(:,:,2), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('liquid_fraction_of_soil_moisture_layer_3')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%sh2ox(:,:,3), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('liquid_fraction_of_soil_moisture_layer_4')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%sh2ox(:,:,4), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_moisture_fraction_layer_1')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%smc(:,:,1), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_moisture_fraction_layer_2')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%smc(:,:,2), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_moisture_fraction_layer_3')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%smc(:,:,3), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_moisture_fraction_layer_4')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%smc(:,:,4), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_porosity')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%smcmax1, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('subsurface_runoff_amount')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%soldrain, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+      CASE ('surface_runoff_amount')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%infxsrt, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+      CASE ('soil_temperature_layer_1')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%stc(:,:,1), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_temperature_layer_2')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%stc(:,:,2), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_temperature_layer_3')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%stc(:,:,3), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('soil_temperature_layer_4')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%stc(:,:,4), &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('vegetation_type')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%vegtyp, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('water_surface_height_above_reference_datum')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%sfcheadrt, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE DEFAULT
+        call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
+          msg=METHOD//": Field hookup missing: "//trim(stdName), &
+          file=FILENAME,rcToReturn=rc)
+        return  ! bail out
+    END SELECT
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": leaving "//METHOD, ESMF_LOGMSG_INFO)
 #endif
 
-  end subroutine
-
-  !-----------------------------------------------------------------------------
+  end function
 
 #undef METHOD
 #define METHOD "WRFHYDRO_GridCreate"

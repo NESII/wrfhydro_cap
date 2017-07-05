@@ -702,26 +702,11 @@ module WRFHydro_NUOPC
 
       if (importConnected) then
         WRFHYDRO_FieldList(fIndex)%realizedImport = .TRUE.
-        if (WRFHYDRO_FieldList(fIndex)%assoc) then
-          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, &
-            farray=WRFHYDRO_FieldList(fIndex)%farrayPtr, &
-            indexflag=ESMF_INDEX_DELOCAL, &
-            rc=rc)
-          if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-        else
-          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_FIELD, rc=rc)
-          if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-!         Create field with ungridded soil layer dimension
-!          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-!            grid=WRFHYDRO_grid, &
-!            arrayspec=WRFHYDRO_soilarrayspec, &
-!            gridToFieldMap=(/1,2/), &
-!            ungriddedLBound=(/1/),ungriddedUBound=(/WRFHYDRO_nsoil/), &
-!            rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-        endif
+        field = WRFHYDRO_FieldCreate(stdName=WRFHYDRO_FieldList(fIndex)%stdname, &
+          grid=WRFHYDRO_grid, &
+          did=is%wrap%did, &
+          rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return  ! bail out
         call NUOPC_Realize(is%wrap%NStateImp(1), field=field, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif(WRFHYDRO_FieldList(fIndex)%adImport) then
@@ -739,26 +724,11 @@ module WRFHydro_NUOPC
 
       if (exportConnected) then
         WRFHYDRO_FieldList(fIndex)%realizedExport = .TRUE.
-        if (WRFHYDRO_FieldList(fIndex)%assoc) then
-          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, &
-            farray=WRFHYDRO_FieldList(fIndex)%farrayPtr, &
-            indexflag=ESMF_INDEX_DELOCAL, &
-            rc=rc)
-          if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-        else
-          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-            grid=WRFHYDRO_grid, typekind=ESMF_TYPEKIND_FIELD, rc=rc)
-          if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-!         Create field with ungridded soil layer dimension
-!          field = ESMF_FieldCreate(name=WRFHYDRO_FieldList(fIndex)%stdname, &
-!            grid=WRFHYDRO_grid, &
-!            arrayspec=WRFHYDRO_soilarrayspec, &
-!            gridToFieldMap=(/1,2/), &
-!            ungriddedLBound=(/1/),ungriddedUBound=(/WRFHYDRO_nsoil/), &
-!            rc=rc)
-!          if (ESMF_STDERRORCHECK(rc)) return
-        endif
+        field = WRFHYDRO_FieldCreate(stdName=WRFHYDRO_FieldList(fIndex)%stdname, &
+          grid=WRFHYDRO_grid, &
+          did=is%wrap%did, &
+          rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return  ! bail out
         call NUOPC_Realize(is%wrap%NStateExp(1), field=field,rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return
       elseif(WRFHYDRO_FieldList(fIndex)%adExport) then
