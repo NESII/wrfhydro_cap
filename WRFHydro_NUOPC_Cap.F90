@@ -743,10 +743,11 @@ module WRFHydro_NUOPC
 
     enddo
 
-    call NUOPC_FillState(is%wrap%NStateImp(1),0,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-    call NUOPC_FillState(is%wrap%NStateExp(1),0,rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
+!    Model has initialized its own field memory so don't fill state.
+!    call NUOPC_FillState(is%wrap%NStateImp(1),0,rc=rc)
+!    if (ESMF_STDERRORCHECK(rc)) return
+!    call NUOPC_FillState(is%wrap%NStateExp(1),0,rc=rc)
+!    if (ESMF_STDERRORCHECK(rc)) return
 
     is%wrap%mode(1) = WRFHYDRO_RunModeGet(is%wrap%NStateImp(1),rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
@@ -964,9 +965,7 @@ subroutine CheckImport(gcomp, rc)
     character(len=10)           :: sStr
     type(ESMF_Clock)            :: modelClock
     type(ESMF_Time)             :: modelCurrTime
-    type(ESMF_Time)             :: modelStopTime
     logical                     :: allCurrTime
-    logical                     :: allStopTime
 
 #ifdef DEBUG
     call ESMF_LogWrite(MODNAME//": entered "//METHOD, ESMF_LOGMSG_INFO)
@@ -987,22 +986,18 @@ subroutine CheckImport(gcomp, rc)
     call NUOPC_ModelGet(gcomp, modelClock=modelClock, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
-    ! get the stop time out of the clock
-    call ESMF_ClockGet(modelClock, currTime=modelCurrTime, stopTime=modelStopTime, rc=rc)
+    ! get the curr time out of the clock
+    call ESMF_ClockGet(modelClock, currTime=modelCurrTime, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
 
     ! check that Fields in the importState show correct timestamp
 
     allCurrTime = NUOPC_IsAtTime(is%wrap%NStateImp(1), modelCurrTime, rc=rc)
     if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    allStopTime = NUOPC_IsAtTime(is%wrap%NStateImp(1), modelStopTime, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-    if (.not.(allCurrTime.or.allStopTime)) then
-      call ESMF_LogSetError(ESMF_FAILURE, &
-        msg=METHOD//": NUOPC INCOMPATIBILITY DETECTED: Import Fields "// &
-          " not at correct time", &
-        line=__LINE__,file=__FILE__,rcToReturn=rc)
-      return  ! bail out
+    if (.not.allCurrTime) then
+      call ESMF_LogWrite(trim(cname)//": NUOPC INCOMPATIBILITY DETECTED: "// &
+        "Import Fields not at correct time", &
+        ESMF_LOGMSG_WARNING)
     endif
 
 #ifdef DEBUG
