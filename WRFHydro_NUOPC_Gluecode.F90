@@ -244,7 +244,8 @@ module wrfhydro_nuopc_gluecode
 
   ! added to consider the adaptive time step from driver.
   real                  :: dt0 = UNINITIALIZED
-  real                  :: dtrt0 = UNINITIALIZED
+  real                  :: dtrt_ter0 = UNINITIALIZED
+  real                  :: dtrt_ch0 = UNINITIALIZED
   integer               :: dt_factor0 = UNINITIALIZED
   integer               :: dt_factor = UNINITIALIZED
   ! added for check soil moisture and soiltype
@@ -296,7 +297,24 @@ contains
     ! Set focing directory
     indir=forcingDir
 
+    ! Get the models timestep
+    call ESMF_ClockGet(clock,timestep=timestep,startTime=startTime,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+    call ESMF_TimeIntervalGet(timestep,s_r8=dt,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+    call WRFHYDRO_TimeToString(startTime,timestr=startTimeStr,rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return ! bail out
+
     ! Set default namelist values
+    read (startTimeStr(1:4),"(I)")   nlst_rt(did)%START_YEAR
+    read (startTimeStr(6:7),"(I)")   nlst_rt(did)%START_MONTH
+    read (startTimeStr(9:10),"(I)")  nlst_rt(did)%START_DAY
+    read (startTimeStr(12:13),"(I)") nlst_rt(did)%START_HOUR
+    read (startTimeStr(15:16),"(I)") nlst_rt(did)%START_MIN
+    nlst_rt(did)%startdate(1:19) = startTimeStr(1:19)
+    nlst_rt(did)%olddate(1:19)   = startTimeStr(1:19)
+    nlst_rt(did)%dt = dt
+    cpl_outdate = startTimeStr(1:19)
     nlst_rt(did)%nsoil=4
     allocate(nlst_rt(did)%zsoil8(4),stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
@@ -391,14 +409,6 @@ contains
 #endif
 
     ! Override the clock configuration in hyro.namelist
-    call ESMF_ClockGet(clock,timestep=timestep,startTime=startTime,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-    call ESMF_TimeIntervalGet(timestep,s_r8=dt,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-    nlst_rt(did)%dt = dt
-    call WRFHYDRO_TimeToString(startTime,timestr=startTimeStr,rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return ! bail out
-
     read (startTimeStr(1:4),"(I)")   nlst_rt(did)%START_YEAR
     read (startTimeStr(6:7),"(I)")   nlst_rt(did)%START_MONTH
     read (startTimeStr(9:10),"(I)")  nlst_rt(did)%START_DAY
@@ -407,7 +417,6 @@ contains
     nlst_rt(did)%startdate(1:19) = startTimeStr(1:19)
     nlst_rt(did)%olddate(1:19)   = startTimeStr(1:19)
     nlst_rt(did)%dt = dt
-
     cpl_outdate = startTimeStr(1:19)
 
     if(nlst_rt(did)%dt .le. 0) then
@@ -420,21 +429,29 @@ contains
     ! Adjust the routing timestep and factor
     ! At this point the coupling driver timestep is unknown
     ! and uses WRFHYDRO Config as best guess
-    if(nlst_rt(did)%dtrt .ge. nlst_rt(did)%dt) then
-       nlst_rt(did)%dtrt = nlst_rt(did)%dt
-       dt_factor = 1
+    if(nlst_rt(did)%dtrt_ter .ge. dt) then
+       nlst_rt(did)%dtrt_ter = dt
+       dt_factor0 = 1
     else
-      if(mod(nlst_rt(did)%dt,nlst_rt(did)%dtrt) /= 0) then
-        call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-          msg=METHOD//": Driver timestep is not a multiple of routine timestep!", &
-          file=FILENAME,rcToReturn=rc)
-        return  ! bail out
-      endif
-      dt_factor = nlst_rt(did)%dt/nlst_rt(did)%dtrt
+       dt_factor = dt/nlst_rt(did)%dtrt_ter
+       if (dt_factor*nlst_rt(did)%dtrt_ter .lt. dt) &
+         nlst_rt(did)%dtrt_ter = dt/dt_factor
+       dt_factor0 = dt_factor
     endif
+
+    if(nlst_rt(did)%dtrt_ch .ge. dt) then
+      nlst_rt(did)%dtrt_ch = dt
+      dt_factor0 = 1
+    else
+      dt_factor = dt/nlst_rt(did)%dtrt_ch
+      if(dt_factor*nlst_rt(did)%dtrt_ch .lt. dt) &
+        nlst_rt(did)%dtrt_ch = dt/dt_factor
+      dt_factor0 = dt_factor
+    endif
+
     dt0 = nlst_rt(did)%dt
-    dtrt0 = nlst_rt(did)%dtrt
-    dt_factor0 = dt_factor
+    dtrt_ter0 = nlst_rt(did)%dtrt_ter
+    dtrt_ch0 = nlst_rt(did)%dtrt_ch
 
     RT_DOMAIN(did)%initialized = .true.
 
@@ -492,19 +509,29 @@ contains
       return  ! bail out
     endif
 
-    if((dt_factor*nlst_rt(did)%dtrt) .ne. nlst_rt(did)%dt) then   ! NUOPC driver time step changed.
+    if((dt_factor0*nlst_rt(did)%dtrt_ter) .ne. nlst_rt(did)%dt) then   ! NUOPC driver time step changed.
       call ESMF_LogWrite(METHOD//": Driver timestep changed.",ESMF_LOGMSG_INFO)
-      if(nlst_rt(did)%dtrt .ge. nlst_rt(did)%dt) then
-        nlst_rt(did)%dtrt = nlst_rt(did)%dt
-        dt_factor = 1
+      if(dtrt_ter0 .ge. nlst_rt(did)%dt) then
+        nlst_rt(did)%dtrt_ter = nlst_rt(did)%dt
+        dt_factor0 = 1
       else
-        if(mod(nlst_rt(did)%dt,nlst_rt(did)%dtrt) /= 0) then
-          call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
-            msg=METHOD//": New driver timestep is not a multiple of routing timestep!", &
-            rcToReturn=rc)
-          return  ! bail out
-        endif
-        dt_factor = nlst_rt(did)%dt/nlst_rt(did)%dtrt
+        dt_factor = nlst_rt(did)%dt / dtrt_ter0
+        if(dt_factor*dtrt_ter0 .lt. nlst_rt(did)%dt) &
+          nlst_rt(did)%dtrt_ter = nlst_rt(did)%dt / dt_factor
+        dt_factor0 = dt_factor
+      endif
+    endif
+
+    if((dt_factor0*nlst_rt(did)%dtrt_ch) .ne. nlst_rt(did)%dt) then   ! NUOPD driver time step changed.
+      call ESMF_LogWrite(METHOD//": Driver timestep changed.",ESMF_LOGMSG_INFO)
+      if(dtrt_ch0 .ge. nlst_rt(did)%dt) then
+        nlst_rt(did)%dtrt_ch = nlst_rt(did)%dt
+        dt_factor0 = 1
+      else
+        dt_factor = nlst_rt(did)%dt / dtrt_ch0
+        if(dt_factor*dtrt_ch0 .lt. nlst_rt(did)%dt) &
+          nlst_rt(did)%dtrt_ch = nlst_rt(did)%dt / dt_factor
+        dt_factor0 = dt_factor
       endif
     endif
 
@@ -1403,7 +1430,9 @@ contains
     call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
     write (logMsg,"(A,F0.3)") ": Restart Step   = ",nlst_rt(did)%rst_dt
     call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
-    write (logMsg,"(A,F0.3)") ": Routing Step   = ",nlst_rt(did)%DTRT
+    write (logMsg,"(A,F0.3)") ": Ter Routing Step   = ",nlst_rt(did)%dtrt_ter
+    call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
+    write (logMsg,"(A,F0.3)") ": Ch Routing Step   = ",nlst_rt(did)%dtrt_ch
     call ESMF_LogWrite(trim(l_label)//logMsg,ESMF_LOGMSG_INFO)
 
     write (logMsg,"(A,I0)") ": Grid ID        = ",nlst_rt(did)%igrid
