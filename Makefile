@@ -167,6 +167,8 @@ build_model:
 	@echo "Building Model..."
 	@echo ""
 	$(call checkdir, $(MODEL_DIR))
+	mkdir -p $(MODEL_LIBDIR)
+	mkdir -p $(MODEL_MODDIR)
 	make -C $(MODEL_DIR) -f $(MODEL_MK)
 
 $(MODEL_MODS): build_model
@@ -179,8 +181,6 @@ $(MODEL_LIB): build_model
 
 .SUFFIXES: 
 .SUFFIXES: .c .C .f90 .F90 .F .f
-
-MODEL_F90COMPILEPATHS =-I$(MODEL_DIR)/$(MODEL_MPPDIR) -I$(MODEL_DIR)/$(MODEL_MODDIR)
 
 .F:
 	@echo "Must have an explicit rule for" $*
@@ -202,7 +202,7 @@ MODEL_F90COMPILEPATHS =-I$(MODEL_DIR)/$(MODEL_MPPDIR) -I$(MODEL_DIR)/$(MODEL_MOD
 	@echo "Compiling $@..."
 	@echo
 	$(ESMF_F90COMPILER) -c $(ESMF_F90COMPILEOPTS) $(ESMF_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) -DESMF_VERSION_MAJOR=$(ESMF_VERSION_MAJOR) $<
-        
+
 # #####################
 # Build NUOPC Component
 # #####################
@@ -301,7 +301,6 @@ check_esmf:
 	echo "Please use ESMF version 7+"; \
 	exit 1; fi;
 	@echo "ESMF Version=$(ESMF_VERSION_STRING)"
-	
 
 # ###########
 # Check Model
