@@ -94,7 +94,7 @@ module wrfhydro_nuopc_gluecode
     real(ESMF_KIND_R8), dimension(:,:,:), pointer :: farrayPtr => null()
   endtype WRFHYDRO_Field
 
-  type(WRFHYDRO_Field),dimension(44) :: WRFHYDRO_FieldList = (/ &
+  type(WRFHYDRO_Field),dimension(46) :: WRFHYDRO_FieldList = (/ &
     WRFHYDRO_Field( & !(01)
       stdname='aerodynamic_roughness_length', units='m', &
       adImport=.FALSE.,adExport=.FALSE.), &
@@ -199,10 +199,10 @@ module wrfhydro_nuopc_gluecode
       adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(35)
       stdname='subsurface_runoff_amount', units='kg m-2', &
-      adImport=.TRUE.,adExport=.TRUE.), &
+      adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(36)
       stdname='surface_runoff_amount', units='kg m-2', &
-      adImport=.TRUE.,adExport=.TRUE.), &
+      adImport=.FALSE.,adExport=.FALSE.), &
     WRFHYDRO_Field( & !(37)
       stdname='surface_snow_thickness', units='m', &
       adImport=.FALSE.,adExport=.TRUE.), & 
@@ -225,8 +225,14 @@ module wrfhydro_nuopc_gluecode
       stdname='volume_fraction_of_total_water_in_soil', units='m3 m-3', &
       adImport=.FALSE.,adExport=.TRUE.), & 
     WRFHYDRO_Field( & !(44)
-      stdname='water_surface_height_above_reference_datum', units='m', &
-      adImport=.FALSE.,adExport=.TRUE.)/)
+      stdname='surface_water_depth', units='mm', &
+      adImport=.FALSE.,adExport=.TRUE.), &
+    WRFHYDRO_Field( & !(45)
+      stdname='time_step_infiltration_excess', units='mm', &
+      adImport=.TRUE.,adExport=.FALSE.), &
+    WRFHYDRO_Field( & !(46)
+      stdname='soil_column_drainage', units='mm', &
+      adImport=.TRUE.,adExport=.FALSE.)/)
 
   ! PARAMETERS
   character(len=ESMF_MAXSTR) :: indir = 'WRFHYDRO_FORCING'
@@ -732,11 +738,21 @@ contains
           farray=rt_domain(did)%vegtyp, &
           indexflag=ESMF_INDEX_DELOCAL, rc=rc)
         if(ESMF_STDERRORCHECK(rc)) return ! bail out
-      CASE ('water_surface_height_above_reference_datum')
+      CASE ('surface_water_depth')
         WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
           farray=rt_domain(did)%sfcheadrt, &
           indexflag=ESMF_INDEX_DELOCAL, rc=rc)
         if(ESMF_STDERRORCHECK(rc)) return ! bail out
+      CASE ('time_step_infiltration_excess')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%infxsrt, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
+      CASE ('soil_column_drainage')
+        WRFHYDRO_FieldCreate = ESMF_FieldCreate(name=stdName, grid=grid, &
+          farray=rt_domain(did)%soldrain, &
+          indexflag=ESMF_INDEX_DELOCAL, rc=rc)
+        if (ESMF_STDERRORCHECK(rc)) return
       CASE DEFAULT
         call ESMF_LogSetError(ESMF_RC_ARG_OUTOFRANGE, &
           msg=METHOD//": Field hookup missing: "//trim(stdName), &
