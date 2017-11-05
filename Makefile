@@ -55,7 +55,9 @@ ifndef INSTDIR
 INSTDIR  := WRFHYDRO_$(shell date '+%Y-%m-%d-%H-%M-%S')
 endif
 
+ifndef INSTPATH
 INSTPATH := $(abspath $(DESTDIR)/$(INSTDIR))
+endif
 
 # ###############
 # Model Variables
