@@ -241,7 +241,6 @@ module WRFHydro_NUOPC
   use beta_NUOPC_Fill
   use beta_NUOPC_Log
   use beta_NUOPC_Auxiliary
-  use beta_NUOPC_Base
 
   implicit none
 
@@ -605,12 +604,12 @@ module WRFHydro_NUOPC
       is%wrap%NStateImp(1) = importState
       is%wrap%NStateExp(1) = exportState
     else
-      call beta_NUOPC_AddNamespace(importState, &
+      call NUOPC_AddNamespace(importState, &
         domain=trim(is%wrap%hgrid), &
         nestedStateName="NestedStateImp_N1", &
         nestedState=is%wrap%NStateImp(1), rc=rc)
       if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-      call beta_NUOPC_AddNamespace(exportState, &
+      call NUOPC_AddNamespace(exportState, &
         domain=trim(is%wrap%hgrid), &
         nestedStateName="NestedStateExp_N1", &
         nestedState=is%wrap%NStateExp(1), rc=rc)
