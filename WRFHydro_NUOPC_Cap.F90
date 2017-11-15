@@ -604,13 +604,13 @@ module WRFHydro_NUOPC
       is%wrap%NStateImp(1) = importState
       is%wrap%NStateExp(1) = exportState
     else
-      call NUOPC_AddNamespace(importState, &
-        domain=trim(is%wrap%hgrid), &
+      call NUOPC_AddNestedState(importState, &
+        CplSet=trim(is%wrap%hgrid), &
         nestedStateName="NestedStateImp_N1", &
         nestedState=is%wrap%NStateImp(1), rc=rc)
       if (ESMF_STDERRORCHECK(rc)) return  ! bail out
-      call NUOPC_AddNamespace(exportState, &
-        domain=trim(is%wrap%hgrid), &
+      call NUOPC_AddNestedState(exportState, &
+        CplSet=trim(is%wrap%hgrid), &
         nestedStateName="NestedStateExp_N1", &
         nestedState=is%wrap%NStateExp(1), rc=rc)
       if (ESMF_STDERRORCHECK(rc)) return  ! bail out
