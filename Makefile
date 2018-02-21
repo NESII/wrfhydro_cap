@@ -98,19 +98,11 @@ CAP_MK        := wrfhydro.mk
 
 CAP_OBJS      := WRFHydro_NUOPC_Cap.o
 CAP_OBJS      += WRFHydro_NUOPC_Gluecode.o
-CAP_OBJS      += beta_NUOPC_Copy.o
-CAP_OBJS      += beta_NUOPC_FileRead.o
-CAP_OBJS      += beta_NUOPC_Auxiliary.o
-CAP_OBJS      += beta_NUOPC_Fill.o
-CAP_OBJS      += beta_NUOPC_Log.o
+CAP_OBJS      += WRFHydro_ESMF_Extensions.o
 
 CAP_MODS      := wrfhydro_nuopc.mod
 CAP_MODS      += wrfhydro_nuopc_gluecode.mod
-CAP_MODS      += beta_nuopc_copy.mod
-CAP_MODS      += beta_nuopc_fileread.mod
-CAP_MODS      += beta_nuopc_auxiliary.mod
-CAP_MODS      += beta_nuopc_fill.mod
-CAP_MODS      += beta_nuopc_log.mod
+CAP_MODS      += wrfhydro_esmf_extensions.mod
 
 CAP_FILES     := $(CAP_OBJS) $(CAP_MODS) $(CAP_LIB) $(CAP_VERS) $(CAP_MK)
 
@@ -140,21 +132,14 @@ nuopcinstall: $(CAP_LIB) $(CAP_MODS) $(CAP_VERS) \
 # Dependencies
 # ############
 
-WRFHydro_NUOPC_Cap.o: WRFHydro_NUOPC_Gluecode.o \
- beta_NUOPC_Fill.o beta_NUOPC_Auxiliary.o \
- beta_NUOPC_Log.o WRFHydro_NUOPC_Macros.h
-WRFHydro_NUOPC_Gluecode.o: beta_NUOPC_Copy.o \
- beta_NUOPC_Log.o beta_NUOPC_FileRead.o \
- WRFHydro_NUOPC_Macros.h \
- $(MODEL_MODS)
+WRFHydro_NUOPC_Cap.o: WRFHydro_NUOPC_Macros.h \
+ WRFHydro_NUOPC_Gluecode.o WRFHydro_ESMF_Extensions.o
+WRFHydro_NUOPC_Gluecode.o: WRFHydro_NUOPC_Macros.h \
+ WRFHydro_ESMF_Extensions.o $(MODEL_MODS)
 
 wrfhydro_nuopc.mod: WRFHydro_NUOPC_Cap.o
 wrfhydro_nuopc_gluecode.mod: WRFHydro_NUOPC_Gluecode.o
-beta_nuopc_copy.mod: beta_NUOPC_Copy.o
-beta_nuopc_fileread.mod: beta_NUOPC_FileRead.o
-beta_nuopc_auxiliary.mod: beta_NUOPC_Auxiliary.o
-beta_nuopc_fill.mod: beta_NUOPC_Fill.o
-beta_nuopc_log.mod: beta_NUOPC_Log.o
+wrfhydro_esmf_extensions.mod: WRFHydro_ESMF_Extensions.o
 
 # ###############
 # Build Model

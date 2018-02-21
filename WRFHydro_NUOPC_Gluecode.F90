@@ -15,6 +15,7 @@ module wrfhydro_nuopc_gluecode
 ! !USES:
   use ESMF
   use NUOPC
+  use WRFHydro_ESMF_Extensions
   use module_mpp_land, only: &
     HYDRO_COMM_WORLD, &
     global_nx, &
@@ -52,9 +53,6 @@ module wrfhydro_nuopc_gluecode
 !    config_flags
 !  use module_configure, only: &
 !    model_config_rec
-  use beta_NUOPC_Log
-  use beta_NUOPC_FileRead
-  use beta_NUOPC_Copy
 
   implicit none
 
@@ -813,7 +811,7 @@ contains
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg=METHOD//': Allocation of latitude memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("XLAT_M",nlst_rt(did)%geo_static_flnm, &
+    call WRFHYDRO_ESMF_NetcdfReadIXJX("XLAT_M",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),latitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -822,7 +820,7 @@ contains
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg=METHOD//': Allocation of longitude memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("XLONG_M",nlst_rt(did)%geo_static_flnm, &
+    call WRFHYDRO_ESMF_NetcdfReadIXJX("XLONG_M",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),longitude,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -864,7 +862,7 @@ contains
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg=METHOD//': Allocation of mask memory failed.', &
       file=FILENAME, rcToReturn=rc)) return ! bail out
-    call NUOPC_NetcdfReadIXJX("LANDMASK",nlst_rt(did)%geo_static_flnm, &
+    call WRFHYDRO_ESMF_NetcdfReadIXJX("LANDMASK",nlst_rt(did)%geo_static_flnm, &
       (/x_start,y_start/),mask,rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -895,12 +893,12 @@ contains
     ! The original WPS implementation used the _CORNER names
     ! but it was then changes to the _C names.  Support both
     ! options.
-    if (NUOPC_NetcdfIsPresent("XLAT_CORNER",nlst_rt(did)%geo_static_flnm) .AND. &
-         NUOPC_NetcdfIsPresent("XLONG_CORNER",nlst_rt(did)%geo_static_flnm)) then
+    if (WRFHYDRO_ESMF_NetcdfIsPresent("XLAT_CORNER",nlst_rt(did)%geo_static_flnm) .AND. &
+         WRFHYDRO_ESMF_NetcdfIsPresent("XLONG_CORNER",nlst_rt(did)%geo_static_flnm)) then
        xlat_corner_name = "XLAT_CORNER"
        xlon_corner_name = "XLONG_CORNER"
-    else if (NUOPC_NetcdfIsPresent("XLAT_C",nlst_rt(did)%geo_static_flnm) .AND. &
-         NUOPC_NetcdfIsPresent("XLONG_C",nlst_rt(did)%geo_static_flnm)) then
+    else if (WRFHYDRO_ESMF_NetcdfIsPresent("XLAT_C",nlst_rt(did)%geo_static_flnm) .AND. &
+         WRFHYDRO_ESMF_NetcdfIsPresent("XLONG_C",nlst_rt(did)%geo_static_flnm)) then
        xlat_corner_name = "XLAT_C"
        xlon_corner_name = "XLONG_C"
     else
@@ -914,7 +912,7 @@ contains
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
         msg=METHOD//': Allocation of corner latitude memory failed.', &
         file=FILENAME, rcToReturn=rc)) return ! bail out
-      call NUOPC_NetcdfReadIXJX(trim(xlat_corner_name),nlst_rt(did)%geo_static_flnm, &
+      call WRFHYDRO_ESMF_NetcdfReadIXJX(trim(xlat_corner_name),nlst_rt(did)%geo_static_flnm, &
         (/x_start,y_start/),latitude,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
@@ -923,7 +921,7 @@ contains
       if (ESMF_LogFoundAllocError(statusToCheck=stat, &
        msg=METHOD//': Allocation of corner longitude memory failed.', &
        file=FILENAME, rcToReturn=rc)) return ! bail out
-      call NUOPC_NetcdfReadIXJX(trim(xlon_corner_name),nlst_rt(did)%geo_static_flnm, &
+      call WRFHYDRO_ESMF_NetcdfReadIXJX(trim(xlon_corner_name),nlst_rt(did)%geo_static_flnm, &
         (/x_start,y_start/),longitude,rc=rc)
       if(ESMF_STDERRORCHECK(rc)) return ! bail out
 
