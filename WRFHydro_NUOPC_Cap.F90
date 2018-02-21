@@ -1093,7 +1093,7 @@ subroutine CheckImport(gcomp, rc)
     if (is%wrap%lwrite_debug) then
       is%wrap%debugExpAccum = is%wrap%debugExpAccum + timeStep
       if (is%wrap%debugExpAccum >= is%wrap%debugIntvl) then
-        call NUOPC_Write(is%wrap%NStateImp(1), &
+        call NUOPC_Write(is%wrap%NStateExp(1), &
           fileNamePrefix="field_"//trim(cname)//"_exp_D"//trim(is%wrap%hgrid)//'_', &
           overwrite=.false., timeslice=is%wrap%debugExpSlice, rc=rc)
         if (ESMF_STDERRORCHECK(rc)) return  ! bail out
